@@ -4,7 +4,7 @@
     "name": "Navy Green",
     "author": "voltius",
     "description": "Deep navy dark theme with green accents.",
-    "repo": "voltius-app/plugin-navy-green",
+    "repo": "https://raw.githubusercontent.com/voltiusApp/marketplace/main/navy-green",
     "version": "1.0.0",
     "tags": ["theme", "dark"],
     "theme": true
