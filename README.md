@@ -1,10 +1,10 @@
-# Termust Plugin Marketplace
+# Voltius Plugin Marketplace
 
-The official plugin registry for [Termust](https://github.com/termust/termust) — a modern SSH client built with Tauri, React, and Rust.
+The official plugin registry for [Voltius](https://github.com/voltiusApp/voltius) — a modern SSH client built with Tauri, React, and Rust.
 
 ## For users
 
-Browse and install plugins directly from the **Settings → Plugins → Browse** tab in Termust. No account required.
+Browse and install plugins directly from the **Settings → Plugins → Browse** tab in Voltius. No account required.
 
 ---
 
@@ -14,7 +14,7 @@ This guide covers everything you need to publish a plugin to the marketplace.
 
 ### Quickstart
 
-A Termust plugin is a **single bundled JavaScript file** (`index.js`) plus a `manifest.json`. Zero Rust required.
+A Voltius plugin is a **single bundled JavaScript file** (`index.js`) plus a `manifest.json`. Zero Rust required.
 
 ```
 my-plugin/
@@ -72,7 +72,7 @@ my-plugin/
 Export a single `register` function as the default export:
 
 ```typescript
-import type { PluginAPI } from "@termust/plugin-types"; // community types package
+import type { PluginAPI } from "@Voltius/plugin-types"; // community types package
 
 export default function register(api: PluginAPI): (() => void) | void {
   // setup...
@@ -106,7 +106,7 @@ A minimal `package.json`:
 
 ```json
 {
-  "name": "termust-plugin-my-plugin",
+  "name": "Voltius-plugin-my-plugin",
   "version": "1.0.0",
   "scripts": {
     "build": "esbuild src/index.ts --bundle --platform=browser --format=esm --external:react --external:react-dom --outfile=dist/index.js"
@@ -461,7 +461,7 @@ Declare these in `manifest.json` under `"permissions"`. The runtime throws if yo
 
 ```typescript
 // src/index.ts
-import type { PluginAPI } from "@termust/plugin-types";
+import type { PluginAPI } from "@Voltius/plugin-types";
 
 export default function register(api: PluginAPI) {
   if (!api.isActive()) return;
@@ -511,7 +511,7 @@ function parseSshConfig(raw: string) {
 ### Complete example: Theme plugin
 
 ```typescript
-import type { PluginAPI } from "@termust/plugin-types";
+import type { PluginAPI } from "@Voltius/plugin-types";
 
 export default function register(api: PluginAPI) {
   if (!api.isActive()) return;
@@ -544,7 +544,7 @@ export default function register(api: PluginAPI) {
 ### Complete example: Docker manager (side panel)
 
 ```typescript
-import type { PluginAPI } from "@termust/plugin-types";
+import type { PluginAPI } from "@Voltius/plugin-types";
 
 export default function register(api: PluginAPI) {
   if (!api.isActive()) return;
@@ -580,9 +580,9 @@ export default function register(api: PluginAPI) {
    ```
 
 2. Find your app data directory:
-   - **Windows:** `%APPDATA%\termust\`
-   - **macOS:** `~/Library/Application Support/termust/`
-   - **Linux:** `~/.config/termust/`
+   - **Windows:** `%APPDATA%\Voltius\`
+   - **macOS:** `~/Library/Application Support/Voltius/`
+   - **Linux:** `~/.config/Voltius/`
 
 3. Create the plugin folder:
    ```
@@ -591,7 +591,7 @@ export default function register(api: PluginAPI) {
    └── index.js
    ```
 
-4. Start Termust — your plugin loads automatically on the next startup.
+4. Start Voltius — your plugin loads automatically on the next startup.
 
 5. To reload after changes: go to **Settings → Plugins → Installed** and click **Reload** on your plugin. No restart needed.
 
@@ -599,7 +599,7 @@ export default function register(api: PluginAPI) {
 
 ### Publishing to the marketplace
 
-1. **Create a GitHub repo** for your plugin (e.g. `acme/termust-plugin-my-plugin`).
+1. **Create a GitHub repo** for your plugin (e.g. `acme/Voltius-plugin-my-plugin`).
 
 2. **Create a GitHub Release** with two assets:
    - `index.js` — your compiled bundle
@@ -615,7 +615,7 @@ export default function register(api: PluginAPI) {
   "name": "My Plugin",
   "author": "acme",
   "description": "What it does in one sentence.",
-  "repo": "acme/termust-plugin-my-plugin",
+  "repo": "acme/Voltius-plugin-my-plugin",
   "version": "1.0.0",
   "minAppVersion": "0.1.0",
   "tags": ["productivity", "import"],
@@ -635,7 +635,7 @@ For theme plugins, set `"theme": true` — it's listed in the same Browse tab.
 | `description` | yes | One sentence |
 | `repo` | yes | `owner/repo` on GitHub, or a direct URL to the bundle |
 | `version` | yes | Latest release version |
-| `minAppVersion` | no | Minimum Termust version required |
+| `minAppVersion` | no | Minimum Voltius version required |
 | `tags` | yes | 1–5 lowercase tags for filtering |
 | `theme` | yes | `true` if this is a theme-only plugin |
 
