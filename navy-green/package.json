@@ -1,0 +1,10 @@
+{
+  "name": "voltius-plugin-voltius-dark",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --platform=browser --format=esm --external:react --external:react-dom --outfile=dist/index.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.21.0"
+  }
+}
