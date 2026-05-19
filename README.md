@@ -1,6 +1,6 @@
 # Voltius Plugin Marketplace
 
-The official plugin registry for [Voltius](https://github.com/voltiusApp/voltius) — a modern SSH client built with Tauri, React, and Rust.
+The official plugin registry for [Voltius](https://github.com/voltiusApp/voltius) — Open-Source SSH & SFTP Client built with Tauri, React, and Rust.
 
 ## For users
 
