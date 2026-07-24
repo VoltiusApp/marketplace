@@ -14,7 +14,7 @@ The full developer guide — quickstart, `PluginAPI` reference, permissions, and
 
 **[docs.voltius.app/plugins/developing](https://docs.voltius.app/plugins/developing)**
 
-To submit a plugin, open a PR adding your entry to [`plugins.json`](plugins.json). See the [publishing guide](https://docs.voltius.app/plugins/developing#publishing) for the required fields and review criteria.
+To submit a plugin, open a PR adding your entry to [`plugins.json`](plugins.json). See [CONTRIBUTING.md](CONTRIBUTING.md) for the entry schema and the [publishing guide](https://docs.voltius.app/plugins/developing#publishing) for review criteria. Before submitting, run `node scripts/stamp-hashes.mjs` to bind a content hash to your entry so installs are integrity-verified (CI enforces it).
 
 Because plugins are trusted code and run without a runtime sandbox, review is the security boundary — declared permissions must match what the code actually uses, and there must be no deceptive or malicious behavior.
 
