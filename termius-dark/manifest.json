@@ -1,0 +1,8 @@
+{
+  "id": "termius-dark",
+  "name": "Termius Dark",
+  "version": "1.0.0",
+  "description": "Like Termius dark mode. Blue and green.",
+  "permissions": ["themes"],
+  "defaultEnabled": false
+}

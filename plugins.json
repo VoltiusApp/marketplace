@@ -12,5 +12,19 @@
       "dark"
     ],
     "theme": true
+  },
+  {
+    "id": "termius-dark",
+    "name": "Termius Dark",
+    "author": "Auhrus",
+    "description": "Like Termius dark mode. Blue and green.",
+    "repo": "https://raw.githubusercontent.com/voltiusApp/marketplace/main/termius-dark",
+    "version": "1.0.0",
+    "hash": "ff9f94e48ffb1d95b1e17298c636c15db483de8cad87158c6fac61a27c412539",
+    "tags": [
+      "theme",
+      "dark"
+    ],
+    "theme": true
   }
 ]
