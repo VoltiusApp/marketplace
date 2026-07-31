@@ -12,5 +12,20 @@
       "dark"
     ],
     "theme": true
+  },
+  {
+    "id": "plugin-ssh-config",
+    "name": "SSH Config Sync",
+    "author": "Voltius",
+    "description": "Auto-syncs hosts from ~/.ssh/config. Connections are tagged 'ssh-config'.",
+    "repo": "https://github.com/VoltiusApp/voltius/releases/download/plugin-ssh-config-v1.0.0",
+    "version": "1.0.0",
+    "hash": "3041d7fd54eafc96a4328b885d585e1c072d088ded730b11d0df670d429feff6",
+    "minAppVersion": "0.14.0",
+    "tags": [
+      "sync",
+      "ssh"
+    ],
+    "theme": false
   }
 ]
