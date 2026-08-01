@@ -20,6 +20,7 @@ Each element of `plugins.json` is an object:
 | `repo`        | yes      | Where the bundle is served (see below)                                                   |
 | `version`     | yes      | Semver; matches `manifest.json`                                                          |
 | `hash`        | yes\*    | Lowercase-hex SHA-256 of the served `index.js` — see [Integrity](#integrity)             |
+| `permissions` | yes      | The permissions the served `manifest.json` declares — see [Permissions](#permissions)    |
 | `tags`        | no       | Array of strings for search/filtering                                                    |
 | `theme`       | no       | `true` for theme-only plugins                                                            |
 
@@ -37,14 +38,97 @@ The client computes the SHA-256 of the fetched `index.js` at install time and **
 a bundle whose bytes do not match the entry's `hash`. This binds the reviewed bundle to the one your
 users actually run, and catches a later `releases/latest` swap or a compromised author account.
 
-**Before submitting, stamp your entry's hash:**
+**Before submitting, stamp your entry:**
 
 ```sh
-node scripts/stamp-hashes.mjs        # writes the correct hash into every entry
+node scripts/stamp-hashes.mjs          # writes the correct hash and permissions into every entry
 node scripts/stamp-hashes.mjs --check  # what CI runs; must pass
 ```
 
-The script resolves each entry's `index.js` exactly as the client does — hashing the in-repo file
-for plugins served from this repo's `raw.githubusercontent.com/.../marketplace/...` tree, or fetching
-the release asset for external plugins. CI runs `--check` on every PR and on `main`; a missing or
-wrong hash fails the check. Re-run `stamp-hashes.mjs` and commit whenever you ship a new bundle.
+The script resolves each entry's `index.js` and `manifest.json` exactly as the client does — reading
+the in-repo files for plugins served from this repo's `raw.githubusercontent.com/.../marketplace/...`
+tree, or fetching the release assets for external plugins. CI runs `--check` on every PR and on
+`main`; a missing or wrong hash, or a `permissions` array that disagrees with the manifest, fails the
+check. Re-run `stamp-hashes.mjs` and commit whenever you ship a new bundle.
+
+## Naming
+
+**Do not use a third-party trademark in a plugin's `id`, `name`, `description`, directory, package
+name, or theme id.** That is the only naming constraint. There is no house style — within that rule
+the name is yours to choose.
+
+Naming a plugin after the thing it **integrates with** is fine: "Docker", "Proxmox LXC" and
+"GitHub Gist Sync" describe what the plugin does and imply no affiliation. The rule bites when a
+plugin is named after a product it **resembles** — a theme named for another terminal, for instance —
+because that implies an endorsement that does not exist.
+
+If a rename is needed, it has to happen **before** the entry is merged:
+
+- A theme's `id` is the key a user's saved theme selection persists under. Renaming it after merge
+  silently reverts everyone who had picked it.
+- A rename changes the bundle bytes, so `node scripts/stamp-hashes.mjs` must be re-run and the new
+  hash committed.
+
+## Permissions
+
+A plugin's `manifest.json` declares the permissions it needs, and the client enforces them: calling a
+`PluginAPI` method whose permission was not declared throws. Plugins run in a Node-less webview, so
+this is a real capability boundary — `PluginAPI` is the only way out.
+
+### The tiers
+
+**Public** — everything not listed below. Disclosed to the user at install, with no separate consent
+step.
+
+**Gated, read-only** — `metrics:read`, `processes:read`, `docker:read`, `proxmox:read`. Always
+requires explicit install consent, but is presented as read-only access rather than a danger warning:
+these expose infrastructure inventory and telemetry and cannot change anything.
+
+**Gated, danger** — `terminal:read`, `terminal:stream`, `terminal:write`, `keychain:read`,
+`keychain:write`, `processes:manage`, `docker:manage`, `proxmox:manage`. Destructive, or exposes the
+user's own secrets and content. Consent is danger-styled.
+
+The split is about **what the grant exposes, not whether the verb is a read**. `terminal:read` and
+`keychain:read` are reads and stay in the danger tier, because they read the user's secrets and
+content rather than a container list.
+
+### What we require
+
+**Any plugin may request any permission, including a third-party one.** The gate is manifest
+declaration plus the user's install-time consent — not who wrote the plugin. There is no
+first-party-only tier, and no permission is refused a listing outright.
+
+What we do require:
+
+1. **Every declared permission must be justified by the plugin's described functionality.** A theme
+   has no business declaring `terminal:read`. A submission whose permissions exceed what its
+   `description` accounts for is sent back — either narrow the permissions or describe the feature
+   that needs them.
+2. **Declaring a gated permission requires published, readable source.** A public-tier plugin may
+   ship an opaque bundle; once a gated permission is in play a reviewer has to be able to check the
+   declaration against what the code actually calls. Publish the source at the entry's `repo` or link
+   it from there.
+3. **The entry's `permissions` must match the served `manifest.json`.** `stamp-hashes.mjs` writes
+   this for you and CI enforces it.
+
+Note what this is and is not. Listing rules govern **this catalogue**; the client honours whatever
+permissions a user consents to, wherever the plugin came from, so declining to list a plugin does not
+prevent anyone installing it by URL. Likewise, the entry's `permissions` is a disclosure that makes
+the request visible in the PR diff and pins it at review time — unlike `index.js`, `manifest.json` is
+not hash-pinned by the client, so it is not an install-time guarantee.
+
+## Reviewer checklist
+
+What a reviewer checks on every submission. Run through it yourself before opening the PR.
+
+- [ ] `id` matches the plugin's `manifest.json` `id`, and its directory for in-repo plugins.
+- [ ] Name, description, directory and theme id are clear of third-party trademarks
+      (see [Naming](#naming)).
+- [ ] `version` matches `manifest.json`.
+- [ ] The `verify` check is green — hash and `permissions` both agree with what is served.
+- [ ] Every declared permission is accounted for by the `description`.
+- [ ] If any gated permission is declared: source is published and readable.
+- [ ] The source's `PluginAPI` use does not exceed what the manifest declares, and nothing declared
+      is left unused.
+- [ ] Network egress (`api.http`, `fetch`) combined with a gated read has a stated reason.
+- [ ] Nothing deceptive: the plugin does what the entry says it does, and nothing else.
