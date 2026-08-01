@@ -27,5 +27,81 @@
       "ssh"
     ],
     "theme": false
+  },
+  {
+    "id": "plugin-gist-sync",
+    "name": "GitHub Gist Sync",
+    "author": "Voltius",
+    "description": "Sync your data across devices via encrypted GitHub Gist — no Voltius account required.",
+    "repo": "https://github.com/VoltiusApp/voltius/releases/download/plugin-gist-sync-v1.0.0",
+    "version": "1.0.0",
+    "hash": "0fc5ec9cc34512b96e5dd04e5786424636ee792cb4ff308ed91e9b0adeb8c2d8",
+    "minAppVersion": "0.14.0",
+    "tags": [
+      "sync",
+      "github"
+    ],
+    "theme": false
+  },
+  {
+    "id": "plugin-monitoring",
+    "name": "System Metrics",
+    "author": "Voltius",
+    "description": "Real-time CPU, RAM, network, and disk metrics for local and SSH sessions.",
+    "repo": "https://github.com/VoltiusApp/voltius/releases/download/plugin-monitoring-v1.0.0",
+    "version": "1.0.0",
+    "hash": "968e905d3fe9278f25a9ade1d4e7e1f7df831955c7644256a506bd9523298043",
+    "minAppVersion": "0.14.0",
+    "tags": [
+      "monitoring",
+      "metrics"
+    ],
+    "theme": false,
+    "cssHash": "819fd8c33c897e60ec02a3c69e9ea83551f18ddc48f0122b764221870ffaafe8"
+  },
+  {
+    "id": "plugin-docker",
+    "name": "Docker",
+    "author": "Voltius",
+    "description": "Manage Docker containers, images, volumes, and networks for local and SSH sessions.",
+    "repo": "https://github.com/VoltiusApp/voltius/releases/download/plugin-docker-v1.1.0",
+    "version": "1.1.0",
+    "hash": "5dc8b395816ef06ffddde4a37c250c2498cfd5838fe91260521a425c0196d000",
+    "minAppVersion": "0.14.0",
+    "tags": [
+      "docker",
+      "containers"
+    ],
+    "theme": false
+  },
+  {
+    "id": "plugin-process-manager",
+    "name": "Process Manager",
+    "author": "Voltius",
+    "description": "Monitor and manage running processes for local and SSH sessions.",
+    "repo": "https://github.com/VoltiusApp/voltius/releases/download/plugin-process-manager-v1.0.0",
+    "version": "1.0.0",
+    "hash": "378936ec474a1026e39f13d110192d4ed6dfb3d246750d0c685ead11f6b3dc7b",
+    "minAppVersion": "0.14.0",
+    "tags": [
+      "system",
+      "processes"
+    ],
+    "theme": false
+  },
+  {
+    "id": "plugin-proxmox",
+    "name": "Proxmox LXC",
+    "author": "Voltius",
+    "description": "Manage Proxmox VE LXC containers and snapshots over SSH.",
+    "repo": "https://github.com/VoltiusApp/voltius/releases/download/plugin-proxmox-v1.0.0",
+    "version": "1.0.0",
+    "hash": "84a732ebbe57fd7fde2160f3037791b5dcc61378bf9c49645f1f35f9cbf8c572",
+    "minAppVersion": "0.14.0",
+    "tags": [
+      "proxmox",
+      "virtualization"
+    ],
+    "theme": false
   }
 ]
