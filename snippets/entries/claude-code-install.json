@@ -1,0 +1,26 @@
+{
+  "id": "claude-code-install",
+  "kind": "snippet",
+  "name": "Install Claude Code",
+  "description": "Anthropic's official native installer for macOS, Linux and WSL, then print the version to confirm.",
+  "author": "voltius",
+  "tags": ["install", "ai", "cli"],
+  "updated_at": "2026-08-04",
+  "snippets": [
+    {
+      "_eid": "s0",
+      "name": "Install Claude Code",
+      "description": "Installs to ~/.local/bin and self-updates in the background.",
+      "tags": ["install", "ai"],
+      "favorite": false,
+      "only_for_connection_tags": [],
+      "only_for_distros": [],
+      "steps": [
+        {
+          "kind": "script",
+          "content": "curl -fsSL https://claude.ai/install.sh | bash\n\n# The installer adds ~/.local/bin to PATH in your shell profile; this session\n# may not have picked it up yet.\nexport PATH=\"$HOME/.local/bin:$PATH\"\nclaude --version"
+        }
+      ]
+    }
+  ]
+}

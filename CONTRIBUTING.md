@@ -132,3 +132,38 @@ What a reviewer checks on every submission. Run through it yourself before openi
       is left unused.
 - [ ] Network egress (`api.http`, `fetch`) combined with a gated read has a stated reason.
 - [ ] Nothing deceptive: the plugin does what the entry says it does, and nothing else.
+
+## Submitting a snippet or pack
+
+Snippets are content, not code — they install as ordinary snippets the user owns
+and can edit, so there is no bundle to hash and no permissions to review.
+
+1. Add one file at `snippets/entries/<id>.json`. The `id` must match the
+   filename and be lowercase kebab-case.
+2. Run `node scripts/build-snippets.mjs` and commit the regenerated
+   `snippets.json` alongside your entry.
+3. Open a PR. CI re-runs the build and fails if the two disagree.
+
+Use `kind: "snippet"` for a single snippet and `kind: "pack"` for a group — a
+pack installs into a folder named after the entry. Each snippet needs an `_eid`
+unique within the entry; a snippet that calls another references it by that
+`_eid`, never by a local `snippet_id`.
+
+The easiest way to author an entry is to build it in Voltius and use **Share to
+community** on the snippet or folder — it emits exactly this format.
+
+What gets a submission rejected:
+
+- **Anything host-specific.** No IPs, internal hostnames, real usernames, or
+  paths that only exist on your machine. Use a `{{variable}}` where the value
+  differs per user — Voltius prompts for it at run time.
+- **Credentials of any kind**, including ones you intend to rotate.
+- **Destructive commands without an obvious guard.** A snippet that deletes,
+  overwrites, or restarts something must make that unmistakable in its name and
+  description.
+- **Piping a remote script into a shell from a URL you do not control**, or from
+  a mutable branch. Pin to a release tag where the upstream project offers one.
+
+Every snippet's steps are shown in full before install, so write them to be
+read: prefer clear commands over clever one-liners, and comment anything whose
+effect is not obvious from the command itself.

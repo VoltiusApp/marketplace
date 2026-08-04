@@ -1,0 +1,56 @@
+{
+  "id": "node-nvm-pnpm",
+  "kind": "pack",
+  "name": "Install Node (nvm) + pnpm",
+  "description": "nvm, the current Node LTS, and pnpm enabled through Corepack.",
+  "author": "voltius",
+  "tags": ["install", "node", "javascript"],
+  "updated_at": "2026-08-04",
+  "snippets": [
+    {
+      "_eid": "s0",
+      "name": "Install nvm",
+      "description": "Pinned to a release tag rather than a branch, so the script you run is the one that was reviewed.",
+      "tags": ["install", "node"],
+      "favorite": false,
+      "only_for_connection_tags": [],
+      "only_for_distros": [],
+      "steps": [
+        {
+          "kind": "script",
+          "content": "curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.6/install.sh | bash\n\n# nvm is a shell function, so a new shell (or this) is needed before nvm works.\nexport NVM_DIR=\"$HOME/.nvm\"\n[ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"\nnvm --version"
+        }
+      ]
+    },
+    {
+      "_eid": "s1",
+      "name": "Install Node LTS",
+      "description": "Installs the current LTS and makes it the default for new shells.",
+      "tags": ["node"],
+      "favorite": false,
+      "only_for_connection_tags": [],
+      "only_for_distros": [],
+      "steps": [
+        {
+          "kind": "script",
+          "content": "export NVM_DIR=\"$HOME/.nvm\"\n[ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"\n\nnvm install --lts\nnvm alias default 'lts/*'\nnode --version\nnpm --version"
+        }
+      ]
+    },
+    {
+      "_eid": "s2",
+      "name": "Enable pnpm via Corepack",
+      "description": "Corepack ships with Node, so pnpm needs no separate installer.",
+      "tags": ["node", "pnpm"],
+      "favorite": false,
+      "only_for_connection_tags": [],
+      "only_for_distros": [],
+      "steps": [
+        {
+          "kind": "script",
+          "content": "export NVM_DIR=\"$HOME/.nvm\"\n[ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"\n\nnpm install --global corepack@latest\ncorepack enable pnpm\npnpm --version"
+        }
+      ]
+    }
+  ]
+}

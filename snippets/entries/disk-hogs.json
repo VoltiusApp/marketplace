@@ -1,0 +1,26 @@
+{
+  "id": "disk-hogs",
+  "kind": "snippet",
+  "name": "What is filling the disk",
+  "description": "Filesystem usage, then the 20 largest directories under a path you choose.",
+  "author": "voltius",
+  "tags": ["disk", "diagnostics"],
+  "updated_at": "2026-08-04",
+  "snippets": [
+    {
+      "_eid": "s0",
+      "name": "What is filling the disk",
+      "description": "Read-only — it reports, it never deletes.",
+      "tags": ["disk", "diagnostics"],
+      "favorite": false,
+      "only_for_connection_tags": [],
+      "only_for_distros": [],
+      "steps": [
+        {
+          "kind": "script",
+          "content": "ROOT={{path}}\n\ndf -h -x tmpfs -x devtmpfs\necho\necho \"Largest directories under $ROOT:\"\nsudo du -h -x --max-depth=3 \"$ROOT\" 2>/dev/null | sort -rh | head -20"
+        }
+      ]
+    }
+  ]
+}

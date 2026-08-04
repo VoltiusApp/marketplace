@@ -1,0 +1,25 @@
+{
+  "id": "whats-listening",
+  "kind": "snippet",
+  "name": "What is listening",
+  "description": "Every listening TCP and UDP socket with the owning process, sorted by port.",
+  "author": "voltius",
+  "tags": ["network", "diagnostics"],
+  "updated_at": "2026-08-04",
+  "snippets": [
+    {
+      "_eid": "s0",
+      "name": "What is listening",
+      "tags": ["network", "diagnostics"],
+      "favorite": false,
+      "only_for_connection_tags": [],
+      "only_for_distros": [],
+      "steps": [
+        {
+          "kind": "script",
+          "content": "# sudo shows the process for sockets owned by other users; without it those\n# rows still appear, just without a name.\nif command -v ss >/dev/null 2>&1; then\n  sudo ss -tulpn 2>/dev/null || ss -tulpn\nelse\n  sudo netstat -tulpn 2>/dev/null || netstat -tulpn\nfi"
+        }
+      ]
+    }
+  ]
+}
