@@ -18,7 +18,7 @@
       "steps": [
         {
           "kind": "script",
-          "content": "PORT=\"{{port}}\"\n\nif command -v ss >/dev/null 2>&1; then\n  OUT=$(ss -tulpnH \"sport = :$PORT\" 2>/dev/null)\nelif command -v lsof >/dev/null 2>&1; then\n  OUT=$(lsof -nP -iTCP:\"$PORT\" -sTCP:LISTEN 2>/dev/null; lsof -nP -iUDP:\"$PORT\" 2>/dev/null)\nelse\n  OUT=$(netstat -tulpn 2>/dev/null | grep -E \"[:.]$PORT[[:space:]]\")\nfi\n\nif [ -n \"$OUT\" ]; then\n  echo \"Port $PORT is IN USE:\"\n  echo \"$OUT\"\nelse\n  echo \"Port $PORT is free (nothing listening).\"\n  echo \"Note: without sudo you may not see sockets owned by other users.\"\nfi"
+          "content": "PORT=\"{{port:number}}\"\n\n# $PORT is embedded in a regex (netstat branch) and in tool-specific argument\n# syntax (ss/lsof branches), so a non-numeric value is not just wrong, it can\n# match unrelated ports or make the tool error out. Require plain digits before\n# running any of the three detection branches.\ncase \"$PORT\" in\n  ''|*[!0-9]*)\n    echo \"Not a valid port: '$PORT' (expected a number)\"\n    PORT_VALID=0\n    ;;\n  *)\n    PORT_VALID=1\n    ;;\nesac\n\nif [ \"$PORT_VALID\" = 1 ]; then\n  if command -v ss >/dev/null 2>&1; then\n    OUT=$(ss -tulpnH \"sport = :$PORT\" 2>/dev/null)\n  elif command -v lsof >/dev/null 2>&1; then\n    OUT=$(lsof -nP -iTCP:\"$PORT\" -sTCP:LISTEN 2>/dev/null; lsof -nP -iUDP:\"$PORT\" 2>/dev/null)\n  else\n    OUT=$(netstat -tulpn 2>/dev/null | grep -E \"[:.]$PORT[[:space:]]\")\n  fi\n\n  if [ -n \"$OUT\" ]; then\n    echo \"Port $PORT is IN USE:\"\n    echo \"$OUT\"\n  else\n    echo \"Port $PORT is free (nothing listening).\"\n    echo \"Note: without sudo you may not see sockets owned by other users.\"\n  fi\nfi"
         }
       ]
     }
