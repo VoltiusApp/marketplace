@@ -139,11 +139,18 @@ What a reviewer checks on every submission. Run through it yourself before openi
 
 ## Contributing snippets
 
-To list a snippet or a pack, open a PR that adds an entry to [`snippets.json`](snippets.json).
+[`snippets.json`](snippets.json) is generated — do not edit it directly.
 
-A snippet is plain text. The client shows the whole script before install and again
-before it runs, and nothing executes until you pick a target and confirm. There is no
-hash-binding as there is for plugins, and none is needed — **review is still the
+1. Add one file at `snippets/entries/<id>.json`. The `id` must match the
+   filename and be lowercase kebab-case.
+2. Run `node scripts/build-snippets.mjs` and commit the regenerated
+   `snippets.json` alongside your entry.
+3. Open a PR. CI re-runs the build with `--check` and fails if the two disagree.
+
+Snippets are content, not code — they install as ordinary snippets the user owns
+and can edit, so there is no bundle to hash and no permissions to review. The
+client shows the whole script before install and again before it runs, and
+nothing executes until you pick a target and confirm. **Review is still the
 boundary, but the user is the last check.**
 
 ### Entry schema
@@ -172,16 +179,23 @@ Each snippet object:
 | `only_for_distros`          | yes      | Array (may be empty)                                                |
 | `steps`                     | yes      | Non-empty array of steps                                            |
 
+Use `kind: "snippet"` for a single snippet and `kind: "pack"` for a group — a
+pack installs into a folder named after the entry. Each snippet needs an `_eid`
+unique within the entry; a step that calls another snippet references it by
+that `_eid`, never by a local `snippet_id`, and must resolve to a sibling
+inside the same entry.
+
 A step is `{"kind": "script", "content": "…"}`, a transfer, or `{"kind": "snippet",
 "_eid": "…"}` calling another snippet **in the same entry**. Picking a snippet that
 calls another pulls the callee in automatically.
 
-A malformed entry is skipped silently by the client rather than breaking the tab —
-so a mistake here costs you your listing without any visible error. Check your
-entry parses before opening the PR.
+The build script validates every entry as it runs — a malformed entry fails
+`node scripts/build-snippets.mjs` (and the CI `--check`) rather than reaching
+users. Run it locally and fix any errors it reports before opening the PR.
 
 The easiest way to author an entry is to build it in Voltius and use **Share to
-community** on the snippet or folder — it emits exactly this format.
+community** on the snippet or folder — it emits exactly this format for
+`snippets/entries/<id>.json`.
 
 ### Variables
 
@@ -199,32 +213,48 @@ Use a `{{variable}}` for anything host-specific — an IP, an internal hostname,
 username, or a path that only exists on your machine. Never hardcode it, and never
 include a credential, including one you intend to rotate.
 
+### What gets a submission rejected
+
+- **Anything host-specific.** No IPs, internal hostnames, real usernames, or
+  paths that only exist on your machine. Use a `{{variable}}` where the value
+  differs per user — Voltius prompts for it at run time.
+- **Credentials of any kind**, including ones you intend to rotate.
+- **Destructive commands without an obvious guard.** A snippet that deletes,
+  overwrites, or restarts something must make that unmistakable in its name and
+  description.
+- **Piping a remote script into a shell from a URL you do not control**, or from
+  a mutable branch. Pin to a release tag where the upstream project offers one.
+- **Duplicating the app.** Nothing a built-in panel (snippets, history, themes,
+  ports, sftp) or a first-party plugin (process-manager, monitoring, docker,
+  proxmox, ssh-config, gist-sync) already does with a button.
+
+Every snippet's steps are shown in full before install, so write them to be
+read: prefer clear commands over clever one-liners, and comment anything whose
+effect is not obvious from the command itself — the preview pane renders
+comments, so they are documentation.
+
 ### The bar
 
-1. **Don't duplicate the app.** Nothing a built-in panel (snippets, history, themes,
-   ports, sftp) or a first-party plugin (process-manager, monitoring, docker, proxmox,
-   ssh-config, gist-sync) already does with a button.
-2. **POSIX `sh`, no bashisms.** Detect capabilities and degrade: `ss → lsof → netstat`,
+Beyond the rejection criteria above, aim for:
+
+1. **POSIX `sh`, no bashisms.** Detect capabilities and degrade: `ss → lsof → netstat`,
    `systemctl → rc-service → service`, `apt-get → dnf → apk → pacman`. Never assume
    systemd or apt.
-3. **Show, then act.** A snippet that changes the host prints what it is about to
+2. **Show, then act.** A snippet that changes the host prints what it is about to
    touch first, and is idempotent on a second run.
-4. **Nothing destructive.** No deleting user data, wiping volumes, or rebooting.
-5. **`sudo` only on the line that needs it**, never wrapping the whole script.
-6. **Comments explain why.** The preview pane renders them — they are documentation.
-7. **Typed variables** where the choice is genuinely the user's.
-8. **End with evidence** — a version, a status, a count that proves it worked.
-
-Also out of bounds: piping a remote script into a shell from a URL you do not
-control, or from a mutable branch — pin to a release tag where the upstream project
-offers one.
+3. **`sudo` only on the line that needs it**, never wrapping the whole script.
+4. **Typed variables** where the choice is genuinely the user's.
+5. **End with evidence** — a version, a status, a count that proves it worked.
 
 ### Review checklist
 
-- [ ] Parses, and every `_eid` referenced by a step exists in the same entry
+- [ ] Parses and passes `node scripts/build-snippets.mjs --check`, and every
+      `_eid` referenced by a step exists in the same entry
 - [ ] Runs on Alpine/busybox, Debian/glibc and a systemd host, or degrades with a clear message
 - [ ] Mutating steps are idempotent and print before they act
-- [ ] No destructive command, no unexplained network fetch, no credential handling
+- [ ] No host-specific value, no credential handling
+- [ ] No destructive command without an obvious guard, no unexplained network fetch
+- [ ] No script piped from a URL you do not control or a mutable branch/tag
 - [ ] `sudo` scoped to single lines
 - [ ] Does not duplicate a panel or first-party plugin
 - [ ] Ends by proving it worked
