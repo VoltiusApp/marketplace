@@ -222,8 +222,12 @@ include a credential, including one you intend to rotate.
 - **Destructive commands without an obvious guard.** A snippet that deletes,
   overwrites, or restarts something must make that unmistakable in its name and
   description.
-- **Piping a remote script into a shell from a URL you do not control**, or from
-  a mutable branch. Pin to a release tag where the upstream project offers one.
+- **Piping a remote script into a shell from a URL the upstream project doesn't
+  control, or from a mutable branch** (e.g. `raw.githubusercontent.com/owner/repo/main/install.sh`) —
+  the content behind the URL can change into something unrelated. Fetching a
+  release artifact from the project's own releases, including the
+  `releases/latest/download/...` form, is fine: it always resolves to a
+  published release of that project. Pin to a specific version where it matters.
 - **Duplicating the app.** Nothing a built-in panel (snippets, history, themes,
   ports, sftp) or a first-party plugin (process-manager, monitoring, docker,
   proxmox, ssh-config, gist-sync) already does with a button.
