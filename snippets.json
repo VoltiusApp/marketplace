@@ -294,6 +294,73 @@
           ]
         }
       ]
+    },
+    {
+      "id": "server-triage",
+      "kind": "pack",
+      "name": "Server triage",
+      "description": "Why did it die, what is eating the disk that you can safely reclaim, and who has been logging in.",
+      "author": "voltius",
+      "tags": [
+        "diagnostics",
+        "triage"
+      ],
+      "updated_at": "2026-08-04",
+      "snippets": [
+        {
+          "_eid": "s0",
+          "name": "Why did it die",
+          "description": "Recent boots, OOM kills, failed services and the tail of the kernel log.",
+          "tags": [
+            "diagnostics"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "# The three things that explain \"it was working yesterday\": a reboot, an OOM\n# kill, or a service that gave up.\necho \"== Uptime and recent boots ==\"\nuptime\ncommand -v last >/dev/null 2>&1 && last reboot 2>/dev/null | head -5\n\necho\necho \"== OOM kills ==\"\nif command -v journalctl >/dev/null 2>&1; then\n  journalctl -k --no-pager 2>/dev/null | grep -iE \"out of memory|oom-kill\" | tail -20\nelif [ -r /var/log/kern.log ]; then\n  grep -iE \"out of memory|oom-kill\" /var/log/kern.log 2>/dev/null | tail -20\nelse\n  dmesg 2>/dev/null | grep -iE \"out of memory|oom-kill\" | tail -20\nfi\necho \"(no lines above means no OOM kill was recorded)\"\n\necho\necho \"== Failed services ==\"\nif command -v systemctl >/dev/null 2>&1; then\n  systemctl --failed --no-pager\nelif command -v rc-status >/dev/null 2>&1; then\n  rc-status --crashed 2>/dev/null || rc-status 2>/dev/null\nelse\n  echo \"no service manager found\"\nfi\n\necho\necho \"== Last 20 kernel messages ==\"\nOUT=$(dmesg 2>/dev/null | tail -20)\nif [ -n \"$OUT\" ]; then\n  echo \"$OUT\"\nelse\n  echo \"dmesg not readable without root\"\nfi\n"
+            }
+          ]
+        },
+        {
+          "_eid": "s1",
+          "name": "Reclaim disk safely",
+          "description": "Shows the size of the journal, package caches and /tmp, then reclaims only those. Never touches images, volumes or your data.",
+          "tags": [
+            "disk",
+            "maintenance"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "# Only caches and rotated logs are touched. Images, volumes and your data are\n# never in scope here — that is what makes this safe to run on a live box.\necho \"== Disk before ==\"\ndf -h / | tail -1\n\necho\necho \"== What can be reclaimed ==\"\n[ -d /var/log/journal ] && sudo du -sh /var/log/journal 2>/dev/null\n[ -d /var/cache/apt ]   && sudo du -sh /var/cache/apt 2>/dev/null\n[ -d /var/cache/dnf ]   && sudo du -sh /var/cache/dnf 2>/dev/null\n[ -d /var/cache/apk ]   && sudo du -sh /var/cache/apk 2>/dev/null\n\necho\n# Shown for context only — files here can be in active use, so this script\n# never clears /tmp automatically.\necho \"== /tmp (shown only — not cleared automatically) ==\"\nsudo du -sh /tmp 2>/dev/null\n\necho\necho \"== Reclaiming ==\"\ncommand -v journalctl >/dev/null 2>&1 && sudo journalctl --vacuum-time=7d\ncommand -v apt-get    >/dev/null 2>&1 && sudo apt-get clean && echo \"apt cache cleaned\"\ncommand -v dnf        >/dev/null 2>&1 && sudo dnf clean all\ncommand -v apk        >/dev/null 2>&1 && sudo rm -rf /var/cache/apk/* && echo \"apk cache cleaned\"\n\necho\necho \"== Disk after ==\"\ndf -h / | tail -1\n"
+            }
+          ]
+        },
+        {
+          "_eid": "s2",
+          "name": "Who logged in",
+          "description": "Current sessions, recent logins and failed attempts, from whichever of wtmp, btmp or the journal this host keeps.",
+          "tags": [
+            "security",
+            "diagnostics"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "# Who has had access recently, and who tried and failed — the first two\n# questions after a lockout scare or a suspected intrusion.\necho \"== Connected right now ==\"\nwho 2>/dev/null || w 2>/dev/null || echo \"no utmp on this host\"\n\necho\necho \"== Last 15 logins ==\"\nOUT=$(last -n 15 2>/dev/null | head -16)\nif [ -n \"$OUT\" ]; then\n  echo \"$OUT\"\nelse\n  echo \"no wtmp on this host\"\nfi\n\necho\necho \"== Failed attempts ==\"\nif command -v lastb >/dev/null 2>&1; then\n  OUT=$(sudo lastb -n 15 2>/dev/null | head -16)\n  if [ -n \"$OUT\" ]; then\n    echo \"$OUT\"\n  else\n    echo \"no btmp on this host\"\n  fi\nelif command -v journalctl >/dev/null 2>&1; then\n  OUT=$(sudo journalctl -u ssh -u sshd --no-pager 2>/dev/null | grep -i \"failed password\" | tail -15)\n  if [ -n \"$OUT\" ]; then\n    echo \"$OUT\"\n  else\n    echo \"no failed-password entries found\"\n  fi\nelif [ -r /var/log/auth.log ]; then\n  OUT=$(sudo grep -i \"failed password\" /var/log/auth.log 2>/dev/null | tail -15)\n  if [ -n \"$OUT\" ]; then\n    echo \"$OUT\"\n  else\n    echo \"no failed-password entries found\"\n  fi\nelse\n  echo \"no auth log available\"\nfi\n"
+            }
+          ]
+        }
+      ]
     }
   ]
 }
