@@ -18,7 +18,7 @@
       "steps": [
         {
           "kind": "script",
-          "content": "ROOT={{path}}\n\ndf -h -x tmpfs -x devtmpfs\necho\necho \"Largest directories under $ROOT:\"\nsudo du -h -x --max-depth=3 \"$ROOT\" 2>/dev/null | sort -rh | head -20"
+          "content": "ROOT=\"{{path}}\"\n\ndf -h -x tmpfs -x devtmpfs\necho\necho \"Largest directories under $ROOT:\"\nOUT=$(sudo du -h -x --max-depth=3 -- \"$ROOT\" | sort -rh | head -20)\nif [ -n \"$OUT\" ]; then\n  echo \"$OUT\"\nelse\n  echo \"Nothing found under $ROOT (path may not exist, or sudo failed).\"\nfi"
         }
       ]
     }
