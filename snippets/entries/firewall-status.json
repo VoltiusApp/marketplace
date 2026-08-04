@@ -1,0 +1,26 @@
+{
+  "id": "firewall-status",
+  "kind": "snippet",
+  "name": "Firewall status",
+  "description": "What this host is actually filtering, via ufw, firewalld, nftables or iptables.",
+  "author": "voltius",
+  "tags": ["network", "security"],
+  "updated_at": "2026-08-04",
+  "snippets": [
+    {
+      "_eid": "s0",
+      "name": "Firewall status",
+      "description": "Read-only: reports the active ruleset and changes nothing.",
+      "tags": ["network", "security"],
+      "favorite": false,
+      "only_for_connection_tags": [],
+      "only_for_distros": [],
+      "steps": [
+        {
+          "kind": "script",
+          "content": "# Read-only: reports the rules, changes nothing.\nif command -v ufw >/dev/null 2>&1; then\n  sudo ufw status verbose\nelif command -v firewall-cmd >/dev/null 2>&1; then\n  sudo firewall-cmd --list-all\nelif command -v nft >/dev/null 2>&1 && sudo nft list ruleset | grep -q .; then\n  sudo nft list ruleset\nelif command -v iptables >/dev/null 2>&1; then\n  sudo iptables -L -n -v\nelse\n  echo \"no firewall tool found (ufw, firewalld, nftables, iptables)\"\nfi\n"
+        }
+      ]
+    }
+  ]
+}

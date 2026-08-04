@@ -1,0 +1,56 @@
+{
+  "id": "service-ops",
+  "kind": "pack",
+  "name": "Service ops",
+  "description": "Inspect, restart and follow a service, on systemd, OpenRC or plain SysV alike.",
+  "author": "voltius",
+  "tags": ["services", "ops"],
+  "updated_at": "2026-08-04",
+  "snippets": [
+    {
+      "_eid": "s0",
+      "name": "Inspect a service",
+      "description": "Status plus the last log lines, from whichever service manager and log source this host has.",
+      "tags": ["services", "diagnostics"],
+      "favorite": false,
+      "only_for_connection_tags": [],
+      "only_for_distros": [],
+      "steps": [
+        {
+          "kind": "script",
+          "content": "SVC=\"{{service}}\"\nLINES=\"{{lines:number:20}}\"\n\nif command -v systemctl >/dev/null 2>&1; then\n  systemctl status \"$SVC\" --no-pager\n  echo\n  echo \"== last $LINES log lines ==\"\n  LOG=$(journalctl -u \"$SVC\" -n \"$LINES\" --no-pager 2>&1)\n  if [ -n \"$LOG\" ]; then echo \"$LOG\"; else echo \"no journal entries for $SVC\"; fi\nelif command -v rc-service >/dev/null 2>&1; then\n  rc-service \"$SVC\" status\n  echo\n  echo \"== last $LINES log lines ==\"\n  tail -n \"$LINES\" \"/var/log/$SVC.log\" 2>/dev/null || echo \"no /var/log/$SVC.log on this host\"\nelif command -v service >/dev/null 2>&1; then\n  service \"$SVC\" status\n  echo\n  echo \"== last $LINES log lines ==\"\n  tail -n \"$LINES\" \"/var/log/$SVC.log\" 2>/dev/null || echo \"no /var/log/$SVC.log on this host\"\nelse\n  echo \"no service manager found (systemctl, rc-service, service)\"\nfi\n"
+        }
+      ]
+    },
+    {
+      "_eid": "s1",
+      "name": "Restart a service",
+      "description": "Shows the state, restarts, then shows it again so you can see whether it actually came back.",
+      "tags": ["services", "ops"],
+      "favorite": false,
+      "only_for_connection_tags": [],
+      "only_for_distros": [],
+      "steps": [
+        {
+          "kind": "script",
+          "content": "SVC=\"{{service}}\"\n\n# State before and after, either side of the restart — a restart you cannot see\n# the result of is not worth running.\necho \"== Before ==\"\nif command -v systemctl >/dev/null 2>&1; then\n  STATE=$(systemctl is-active \"$SVC\" 2>&1)\nelif command -v rc-service >/dev/null 2>&1; then\n  STATE=$(rc-service \"$SVC\" status 2>&1)\nelif command -v service >/dev/null 2>&1; then\n  STATE=$(service \"$SVC\" status 2>&1)\nelse\n  STATE=\"\"\nfi\nif [ -n \"$STATE\" ]; then echo \"$STATE\"; else echo \"unknown\"; fi\n\necho\necho \"== Restarting $SVC ==\"\nif   command -v systemctl  >/dev/null 2>&1; then sudo systemctl restart \"$SVC\"\nelif command -v rc-service >/dev/null 2>&1; then sudo rc-service \"$SVC\" restart\nelif command -v service    >/dev/null 2>&1; then sudo service \"$SVC\" restart\nelse echo \"no service manager found\"; fi\n\necho\necho \"== After ==\"\nif command -v systemctl >/dev/null 2>&1; then\n  systemctl status \"$SVC\" --no-pager 2>/dev/null | head -12\nelif command -v rc-service >/dev/null 2>&1; then\n  STATE=$(rc-service \"$SVC\" status 2>&1)\n  if [ -n \"$STATE\" ]; then echo \"$STATE\"; else echo \"unknown\"; fi\nelif command -v service >/dev/null 2>&1; then\n  STATE=$(service \"$SVC\" status 2>&1)\n  if [ -n \"$STATE\" ]; then echo \"$STATE\"; else echo \"unknown\"; fi\nelse\n  echo \"unknown\"\nfi\n"
+        }
+      ]
+    },
+    {
+      "_eid": "s2",
+      "name": "Follow a service's logs",
+      "description": "Live tail of a service's logs. Runs until you press Ctrl-C.",
+      "tags": ["services", "logs"],
+      "favorite": false,
+      "only_for_connection_tags": [],
+      "only_for_distros": [],
+      "steps": [
+        {
+          "kind": "script",
+          "content": "SVC=\"{{service}}\"\n\n# Runs until you stop it: press Ctrl-C in the terminal to stop following.\nif command -v journalctl >/dev/null 2>&1; then\n  journalctl -u \"$SVC\" -f -n 50\nelif [ -r \"/var/log/$SVC.log\" ]; then\n  tail -f -n 50 \"/var/log/$SVC.log\"\nelif [ -r /var/log/messages ]; then\n  tail -f -n 50 /var/log/messages | grep -Fi \"$SVC\"\nelse\n  echo \"no log source found for $SVC (tried journalctl, /var/log/$SVC.log, /var/log/messages)\"\nfi\n"
+        }
+      ]
+    }
+  ]
+}

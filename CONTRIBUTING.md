@@ -1,4 +1,8 @@
-# Contributing to the Voltius Plugin Marketplace
+# Contributing to the Voltius Marketplace
+
+This repo hosts two catalogues: plugins (`plugins.json`, below) and snippets
+(`snippets.json`, see [Contributing snippets](#contributing-snippets)). They have
+different trust models — read whichever section matches what you're submitting.
 
 To list a plugin, open a PR that adds an entry to [`plugins.json`](plugins.json).
 
@@ -133,26 +137,88 @@ What a reviewer checks on every submission. Run through it yourself before openi
 - [ ] Network egress (`api.http`, `fetch`) combined with a gated read has a stated reason.
 - [ ] Nothing deceptive: the plugin does what the entry says it does, and nothing else.
 
-## Submitting a snippet or pack
+## Contributing snippets
 
-Snippets are content, not code — they install as ordinary snippets the user owns
-and can edit, so there is no bundle to hash and no permissions to review.
+[`snippets.json`](snippets.json) is generated — do not edit it directly.
 
 1. Add one file at `snippets/entries/<id>.json`. The `id` must match the
    filename and be lowercase kebab-case.
 2. Run `node scripts/build-snippets.mjs` and commit the regenerated
    `snippets.json` alongside your entry.
-3. Open a PR. CI re-runs the build and fails if the two disagree.
+3. Open a PR. CI re-runs the build with `--check` and fails if the two disagree.
+
+Snippets are content, not code — they install as ordinary snippets the user owns
+and can edit, so there is no bundle to hash and no permissions to review. The
+client shows the whole script before install. If the snippet has a variable
+that needs input, the variable modal shows the script again before it runs;
+if it does not, the snippet injects and executes immediately, with no second
+preview. **Review is still the boundary: the on-screen preview does not always
+appear a second time before a script runs, so review before merge has to
+carry that weight.**
+
+### Entry schema
+
+| Field         | Required | Description                                                                    |
+| ------------- | -------- | ------------------------------------------------------------------------------ |
+| `id`          | yes      | Unique slug across the whole catalogue                                          |
+| `kind`        | yes      | `"snippet"` (exactly one snippet) or `"pack"` (installs as a folder)            |
+| `name`        | yes      | Display name; for a pack this becomes the folder name                           |
+| `description` | yes (review) | One or two lines; shown on the card and the detail page — the text a user reads before running a script on their own server. Not checked by `build-snippets.mjs --check`; required at review |
+| `author`      | yes (review) | Author handle. Not checked by `build-snippets.mjs --check`; required at review |
+| `tags`        | yes      | Array of strings for search and filtering (may be empty)                        |
+| `updated_at`  | no       | `YYYY-MM-DD`                                                                    |
+| `snippets`    | yes      | Non-empty array of snippet objects                                              |
+
+Each snippet object:
+
+| Field                       | Required | Description                                                        |
+| --------------------------- | -------- | -------------------------------------------------------------------- |
+| `_eid`                      | yes      | Unique **within the entry** (`s0`, `s1`, …); the installer renames it |
+| `name`                      | yes      | Snippet name                                                        |
+| `description`               | no       | Shown in the preview                                                |
+| `tags`                      | yes      | Array (may be empty)                                                |
+| `favorite`                  | yes      | Boolean                                                             |
+| `only_for_connection_tags`  | yes      | Array (may be empty)                                                |
+| `only_for_distros`          | yes      | Array (may be empty)                                                |
+| `steps`                     | yes      | Non-empty array of steps                                            |
 
 Use `kind: "snippet"` for a single snippet and `kind: "pack"` for a group — a
 pack installs into a folder named after the entry. Each snippet needs an `_eid`
-unique within the entry; a snippet that calls another references it by that
-`_eid`, never by a local `snippet_id`.
+unique within the entry; a step that calls another snippet references it by
+that `_eid`, never by a local `snippet_id`, and must resolve to a sibling
+inside the same entry.
+
+A step is `{"kind": "script", "content": "…"}`, a transfer, or `{"kind": "snippet",
+"_eid": "…"}` calling another snippet **in the same entry**. Picking a snippet that
+calls another pulls the callee in automatically.
+
+The build script validates every entry as it runs — a malformed entry fails
+`node scripts/build-snippets.mjs` (and the CI `--check`) rather than reaching
+users. Run it locally and fix any errors it reports before opening the PR.
 
 The easiest way to author an entry is to build it in Voltius and use **Share to
-community** on the snippet or folder — it emits exactly this format.
+community** on the snippet or folder — it emits exactly this format for
+`snippets/entries/<id>.json`.
 
-What gets a submission rejected:
+### Variables
+
+`{{name}}` prompts the user. `{{name:type:default}}` does not — a variable with any
+default, including an empty one, is never prompted for, with one exception: a
+`password`-typed variable always prompts, even with a default, since its value should
+never sit in a shared catalogue entry. Types are `text`, `number`, `password`,
+`boolean` and `choice` (`{{env:choice:dev,staging,prod}}`). A `choice` variable is
+always defaulted to its first option and therefore never prompts — do not use one
+as a confirmation gate (e.g. `{{confirm:choice:no,yes}}` silently resolves to `no`
+and never asks). Never gate a mutating action behind a defaulted variable.
+
+`{{connection.host}}`, `{{connection.username}}`, `{{connection.name}}`, `{{date}}`,
+`{{datetime}}`, `{{timestamp}}` and `{{clipboard}}` resolve automatically.
+
+Use a `{{variable}}` for anything host-specific — an IP, an internal hostname, a real
+username, or a path that only exists on your machine. Never hardcode it, and never
+include a credential, including one you intend to rotate.
+
+### What gets a submission rejected
 
 - **Anything host-specific.** No IPs, internal hostnames, real usernames, or
   paths that only exist on your machine. Use a `{{variable}}` where the value
@@ -161,9 +227,48 @@ What gets a submission rejected:
 - **Destructive commands without an obvious guard.** A snippet that deletes,
   overwrites, or restarts something must make that unmistakable in its name and
   description.
-- **Piping a remote script into a shell from a URL you do not control**, or from
-  a mutable branch. Pin to a release tag where the upstream project offers one.
+- **Piping a remote script into a shell from a URL the upstream project doesn't
+  control, or from a mutable branch** (e.g. `raw.githubusercontent.com/owner/repo/main/install.sh`) —
+  the content behind the URL can change into something unrelated. Fetching a
+  release artifact from the project's own releases, including the
+  `releases/latest/download/...` form, is fine: it always resolves to a
+  published release of that project. Pin to a specific version where it matters.
+- **Duplicating the app.** Nothing a built-in panel (snippets, history, themes,
+  ports, sftp) or a first-party plugin (process-manager, monitoring, docker,
+  proxmox, ssh-config, gist-sync) already does with a button.
 
 Every snippet's steps are shown in full before install, so write them to be
 read: prefer clear commands over clever one-liners, and comment anything whose
-effect is not obvious from the command itself.
+effect is not obvious from the command itself — the preview pane renders
+comments, so they are documentation.
+
+### The bar
+
+Beyond the rejection criteria above, aim for:
+
+1. **POSIX `sh`, no bashisms.** Detect capabilities and degrade: `ss → lsof → netstat`,
+   `systemctl → rc-service → service`, `apt-get → dnf → apk → pacman`. Never assume
+   systemd or apt.
+2. **Show, then act.** A snippet that changes the host prints what it is about to
+   touch first, and is idempotent on a second run.
+3. **`sudo` only on the line that needs it**, never wrapping the whole script.
+4. **Typed variables** where the choice is genuinely the user's.
+5. **End with evidence** — a version, a status, a count that proves it worked.
+6. **Always quote `"{{var}}"` expansions.** Substitution is a blind textual
+   replace — no quoting or validation happens on Voltius's side — so an
+   unquoted variable in a destructive command (`rm -rf {{path}}`) is shell
+   injection. Assign it to a quoted shell variable first (`SVC="{{service}}"`),
+   then use `"$SVC"`.
+
+### Review checklist
+
+- [ ] Parses and passes `node scripts/build-snippets.mjs --check`, and every
+      `_eid` referenced by a step exists in the same entry
+- [ ] Runs on Alpine/busybox, Debian/glibc and a systemd host, or degrades with a clear message
+- [ ] Mutating steps are idempotent and print before they act
+- [ ] No host-specific value, no credential handling
+- [ ] No destructive command without an obvious guard, no unexplained network fetch
+- [ ] No script piped from a URL the upstream project doesn't control, or a mutable branch — a pinned tag or a release artifact is fine
+- [ ] `sudo` scoped to single lines
+- [ ] Does not duplicate a panel or first-party plugin
+- [ ] Ends by proving it worked
