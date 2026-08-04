@@ -18,7 +18,7 @@
       "steps": [
         {
           "kind": "script",
-          "content": "PORT={{port}}\n\nif command -v ss >/dev/null 2>&1; then\n  OUT=$(ss -tulpnH \"sport = :$PORT\" 2>/dev/null)\nelif command -v lsof >/dev/null 2>&1; then\n  OUT=$(lsof -nP -iTCP:\"$PORT\" -sTCP:LISTEN 2>/dev/null; lsof -nP -iUDP:\"$PORT\" 2>/dev/null)\nelse\n  OUT=$(netstat -tulpn 2>/dev/null | grep -E \"[:.]$PORT[[:space:]]\")\nfi\n\nif [ -n \"$OUT\" ]; then\n  echo \"Port $PORT is IN USE:\"\n  echo \"$OUT\"\nelse\n  echo \"Port $PORT is free (nothing listening).\"\n  echo \"Note: without sudo you may not see sockets owned by other users.\"\nfi"
+          "content": "PORT=\"{{port}}\"\n\nif command -v ss >/dev/null 2>&1; then\n  OUT=$(ss -tulpnH \"sport = :$PORT\" 2>/dev/null)\nelif command -v lsof >/dev/null 2>&1; then\n  OUT=$(lsof -nP -iTCP:\"$PORT\" -sTCP:LISTEN 2>/dev/null; lsof -nP -iUDP:\"$PORT\" 2>/dev/null)\nelse\n  OUT=$(netstat -tulpn 2>/dev/null | grep -E \"[:.]$PORT[[:space:]]\")\nfi\n\nif [ -n \"$OUT\" ]; then\n  echo \"Port $PORT is IN USE:\"\n  echo \"$OUT\"\nelse\n  echo \"Port $PORT is free (nothing listening).\"\n  echo \"Note: without sudo you may not see sockets owned by other users.\"\nfi"
         }
       ]
     }
