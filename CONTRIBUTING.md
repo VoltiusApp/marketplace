@@ -1,4 +1,8 @@
-# Contributing to the Voltius Plugin Marketplace
+# Contributing to the Voltius Marketplace
+
+This repo hosts two catalogues: plugins (`plugins.json`, below) and snippets
+(`snippets.json`, see [Contributing snippets](#contributing-snippets)). They have
+different trust models — read whichever section matches what you're submitting.
 
 To list a plugin, open a PR that adds an entry to [`plugins.json`](plugins.json).
 
@@ -133,37 +137,94 @@ What a reviewer checks on every submission. Run through it yourself before openi
 - [ ] Network egress (`api.http`, `fetch`) combined with a gated read has a stated reason.
 - [ ] Nothing deceptive: the plugin does what the entry says it does, and nothing else.
 
-## Submitting a snippet or pack
+## Contributing snippets
 
-Snippets are content, not code — they install as ordinary snippets the user owns
-and can edit, so there is no bundle to hash and no permissions to review.
+To list a snippet or a pack, open a PR that adds an entry to [`snippets.json`](snippets.json).
 
-1. Add one file at `snippets/entries/<id>.json`. The `id` must match the
-   filename and be lowercase kebab-case.
-2. Run `node scripts/build-snippets.mjs` and commit the regenerated
-   `snippets.json` alongside your entry.
-3. Open a PR. CI re-runs the build and fails if the two disagree.
+A snippet is plain text. The client shows the whole script before install and again
+before it runs, and nothing executes until you pick a target and confirm. There is no
+hash-binding as there is for plugins, and none is needed — **review is still the
+boundary, but the user is the last check.**
 
-Use `kind: "snippet"` for a single snippet and `kind: "pack"` for a group — a
-pack installs into a folder named after the entry. Each snippet needs an `_eid`
-unique within the entry; a snippet that calls another references it by that
-`_eid`, never by a local `snippet_id`.
+### Entry schema
+
+| Field         | Required | Description                                                                    |
+| ------------- | -------- | ------------------------------------------------------------------------------ |
+| `id`          | yes      | Unique slug across the whole catalogue                                          |
+| `kind`        | yes      | `"snippet"` (exactly one snippet) or `"pack"` (installs as a folder)            |
+| `name`        | yes      | Display name; for a pack this becomes the folder name                           |
+| `description` | yes      | One or two lines; shown on the card and the detail page                         |
+| `author`      | yes      | Author handle                                                                   |
+| `tags`        | no       | Array of strings for search and filtering                                       |
+| `updated_at`  | no       | `YYYY-MM-DD`                                                                    |
+| `snippets`    | yes      | Non-empty array of snippet objects                                              |
+
+Each snippet object:
+
+| Field                       | Required | Description                                                        |
+| --------------------------- | -------- | -------------------------------------------------------------------- |
+| `_eid`                      | yes      | Unique **within the entry** (`s0`, `s1`, …); the installer renames it |
+| `name`                      | yes      | Snippet name                                                        |
+| `description`               | no       | Shown in the preview                                                |
+| `tags`                      | yes      | Array (may be empty)                                                |
+| `favorite`                  | yes      | Boolean                                                             |
+| `only_for_connection_tags`  | yes      | Array (may be empty)                                                |
+| `only_for_distros`          | yes      | Array (may be empty)                                                |
+| `steps`                     | yes      | Non-empty array of steps                                            |
+
+A step is `{"kind": "script", "content": "…"}`, a transfer, or `{"kind": "snippet",
+"_eid": "…"}` calling another snippet **in the same entry**. Picking a snippet that
+calls another pulls the callee in automatically.
+
+A malformed entry is skipped silently by the client rather than breaking the tab —
+so a mistake here costs you your listing without any visible error. Check your
+entry parses before opening the PR.
 
 The easiest way to author an entry is to build it in Voltius and use **Share to
 community** on the snippet or folder — it emits exactly this format.
 
-What gets a submission rejected:
+### Variables
 
-- **Anything host-specific.** No IPs, internal hostnames, real usernames, or
-  paths that only exist on your machine. Use a `{{variable}}` where the value
-  differs per user — Voltius prompts for it at run time.
-- **Credentials of any kind**, including ones you intend to rotate.
-- **Destructive commands without an obvious guard.** A snippet that deletes,
-  overwrites, or restarts something must make that unmistakable in its name and
-  description.
-- **Piping a remote script into a shell from a URL you do not control**, or from
-  a mutable branch. Pin to a release tag where the upstream project offers one.
+`{{name}}` prompts the user. `{{name:type:default}}` does not — a variable with any
+default, including an empty one, is never prompted for, with one exception: a
+`password`-typed variable always prompts, even with a default, since its value should
+never sit in a shared catalogue entry. Types are `text`, `number`, `password`,
+`boolean` and `choice` (`{{env:choice:dev,staging,prod}}`). Never gate a mutating
+action behind a defaulted variable.
 
-Every snippet's steps are shown in full before install, so write them to be
-read: prefer clear commands over clever one-liners, and comment anything whose
-effect is not obvious from the command itself.
+`{{connection.host}}`, `{{connection.username}}`, `{{connection.name}}`, `{{date}}`,
+`{{datetime}}`, `{{timestamp}}` and `{{clipboard}}` resolve automatically.
+
+Use a `{{variable}}` for anything host-specific — an IP, an internal hostname, a real
+username, or a path that only exists on your machine. Never hardcode it, and never
+include a credential, including one you intend to rotate.
+
+### The bar
+
+1. **Don't duplicate the app.** Nothing a built-in panel (snippets, history, themes,
+   ports, sftp) or a first-party plugin (process-manager, monitoring, docker, proxmox,
+   ssh-config, gist-sync) already does with a button.
+2. **POSIX `sh`, no bashisms.** Detect capabilities and degrade: `ss → lsof → netstat`,
+   `systemctl → rc-service → service`, `apt-get → dnf → apk → pacman`. Never assume
+   systemd or apt.
+3. **Show, then act.** A snippet that changes the host prints what it is about to
+   touch first, and is idempotent on a second run.
+4. **Nothing destructive.** No deleting user data, wiping volumes, or rebooting.
+5. **`sudo` only on the line that needs it**, never wrapping the whole script.
+6. **Comments explain why.** The preview pane renders them — they are documentation.
+7. **Typed variables** where the choice is genuinely the user's.
+8. **End with evidence** — a version, a status, a count that proves it worked.
+
+Also out of bounds: piping a remote script into a shell from a URL you do not
+control, or from a mutable branch — pin to a release tag where the upstream project
+offers one.
+
+### Review checklist
+
+- [ ] Parses, and every `_eid` referenced by a step exists in the same entry
+- [ ] Runs on Alpine/busybox, Debian/glibc and a systemd host, or degrades with a clear message
+- [ ] Mutating steps are idempotent and print before they act
+- [ ] No destructive command, no unexplained network fetch, no credential handling
+- [ ] `sudo` scoped to single lines
+- [ ] Does not duplicate a panel or first-party plugin
+- [ ] Ends by proving it worked
