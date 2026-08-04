@@ -48,9 +48,9 @@
     "name": "GitHub Gist Sync",
     "author": "Voltius",
     "description": "Sync your data across devices via encrypted GitHub Gist — no Voltius account required.",
-    "repo": "https://github.com/VoltiusApp/voltius/releases/download/plugin-gist-sync-v1.1.0",
-    "version": "1.1.0",
-    "hash": "3f644516726e0dfd76cbe46aa3d4f6fe77343951c797f0ed9d1c38e1e1f009fe",
+    "repo": "https://github.com/VoltiusApp/voltius/releases/download/plugin-gist-sync-v1.1.1",
+    "version": "1.1.1",
+    "hash": "9782b3933a8f04a53d70e4a39de4e0b28ba16838627cb01e66a5451211a0ab5a",
     "permissions": [
       "vault:read",
       "vault:write",
