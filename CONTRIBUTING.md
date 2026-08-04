@@ -160,8 +160,8 @@ boundary, but the user is the last check.**
 | `id`          | yes      | Unique slug across the whole catalogue                                          |
 | `kind`        | yes      | `"snippet"` (exactly one snippet) or `"pack"` (installs as a folder)            |
 | `name`        | yes      | Display name; for a pack this becomes the folder name                           |
-| `description` | no       | One or two lines; shown on the card and the detail page. Not enforced by the build script, but every entry has one |
-| `author`      | no       | Author handle. Not enforced by the build script, but every entry has one        |
+| `description` | yes (review) | One or two lines; shown on the card and the detail page — the text a user reads before running a script on their own server. Not checked by `build-snippets.mjs --check`; required at review |
+| `author`      | yes (review) | Author handle. Not checked by `build-snippets.mjs --check`; required at review |
 | `tags`        | yes      | Array of strings for search and filtering (may be empty)                        |
 | `updated_at`  | no       | `YYYY-MM-DD`                                                                    |
 | `snippets`    | yes      | Non-empty array of snippet objects                                              |
