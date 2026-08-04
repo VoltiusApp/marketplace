@@ -160,9 +160,9 @@ boundary, but the user is the last check.**
 | `id`          | yes      | Unique slug across the whole catalogue                                          |
 | `kind`        | yes      | `"snippet"` (exactly one snippet) or `"pack"` (installs as a folder)            |
 | `name`        | yes      | Display name; for a pack this becomes the folder name                           |
-| `description` | yes      | One or two lines; shown on the card and the detail page                         |
-| `author`      | yes      | Author handle                                                                   |
-| `tags`        | no       | Array of strings for search and filtering                                       |
+| `description` | no       | One or two lines; shown on the card and the detail page. Not enforced by the build script, but every entry has one |
+| `author`      | no       | Author handle. Not enforced by the build script, but every entry has one        |
+| `tags`        | yes      | Array of strings for search and filtering (may be empty)                        |
 | `updated_at`  | no       | `YYYY-MM-DD`                                                                    |
 | `snippets`    | yes      | Non-empty array of snippet objects                                              |
 
@@ -258,7 +258,7 @@ Beyond the rejection criteria above, aim for:
 - [ ] Mutating steps are idempotent and print before they act
 - [ ] No host-specific value, no credential handling
 - [ ] No destructive command without an obvious guard, no unexplained network fetch
-- [ ] No script piped from a URL you do not control or a mutable branch/tag
+- [ ] No script piped from a URL the upstream project doesn't control, or a mutable branch — a pinned tag or a release artifact is fine
 - [ ] `sudo` scoped to single lines
 - [ ] Does not duplicate a panel or first-party plugin
 - [ ] Ends by proving it worked
