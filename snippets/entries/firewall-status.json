@@ -18,7 +18,7 @@
       "steps": [
         {
           "kind": "script",
-          "content": "# Read-only: reports the rules, changes nothing.\nif command -v ufw >/dev/null 2>&1; then\n  sudo ufw status verbose\nelif command -v firewall-cmd >/dev/null 2>&1; then\n  sudo firewall-cmd --list-all\nelif command -v nft >/dev/null 2>&1 && sudo nft list ruleset 2>/dev/null | grep -q .; then\n  sudo nft list ruleset\nelif command -v iptables >/dev/null 2>&1; then\n  sudo iptables -L -n -v\nelse\n  echo \"no firewall tool found (ufw, firewalld, nftables, iptables)\"\nfi\n"
+          "content": "# Read-only: reports the rules, changes nothing.\nif command -v ufw >/dev/null 2>&1; then\n  sudo ufw status verbose\nelif command -v firewall-cmd >/dev/null 2>&1; then\n  sudo firewall-cmd --list-all\nelif command -v nft >/dev/null 2>&1 && sudo nft list ruleset | grep -q .; then\n  sudo nft list ruleset\nelif command -v iptables >/dev/null 2>&1; then\n  sudo iptables -L -n -v\nelse\n  echo \"no firewall tool found (ufw, firewalld, nftables, iptables)\"\nfi\n"
         }
       ]
     }

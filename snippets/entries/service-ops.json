@@ -48,7 +48,7 @@
       "steps": [
         {
           "kind": "script",
-          "content": "SVC=\"{{service}}\"\n\n# Runs until you stop it: press Ctrl-C in the terminal to stop following.\nif command -v journalctl >/dev/null 2>&1; then\n  journalctl -u \"$SVC\" -f -n 50\nelif [ -r \"/var/log/$SVC.log\" ]; then\n  tail -f -n 50 \"/var/log/$SVC.log\"\nelif [ -r /var/log/messages ]; then\n  tail -f -n 50 /var/log/messages | grep --line-buffered -i \"$SVC\"\nelse\n  echo \"no log source found for $SVC (tried journalctl, /var/log/$SVC.log, /var/log/messages)\"\nfi\n"
+          "content": "SVC=\"{{service}}\"\n\n# Runs until you stop it: press Ctrl-C in the terminal to stop following.\nif command -v journalctl >/dev/null 2>&1; then\n  journalctl -u \"$SVC\" -f -n 50\nelif [ -r \"/var/log/$SVC.log\" ]; then\n  tail -f -n 50 \"/var/log/$SVC.log\"\nelif [ -r /var/log/messages ]; then\n  tail -f -n 50 /var/log/messages | grep -Fi \"$SVC\"\nelse\n  echo \"no log source found for $SVC (tried journalctl, /var/log/$SVC.log, /var/log/messages)\"\nfi\n"
         }
       ]
     }

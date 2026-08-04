@@ -149,9 +149,12 @@ What a reviewer checks on every submission. Run through it yourself before openi
 
 Snippets are content, not code — they install as ordinary snippets the user owns
 and can edit, so there is no bundle to hash and no permissions to review. The
-client shows the whole script before install and again before it runs, and
-nothing executes until you pick a target and confirm. **Review is still the
-boundary, but the user is the last check.**
+client shows the whole script before install. If the snippet has a variable
+that needs input, the variable modal shows the script again before it runs;
+if it does not, the snippet injects and executes immediately, with no second
+preview. **Review is still the boundary: the on-screen preview does not always
+appear a second time before a script runs, so review before merge has to
+carry that weight.**
 
 ### Entry schema
 
@@ -203,8 +206,10 @@ community** on the snippet or folder — it emits exactly this format for
 default, including an empty one, is never prompted for, with one exception: a
 `password`-typed variable always prompts, even with a default, since its value should
 never sit in a shared catalogue entry. Types are `text`, `number`, `password`,
-`boolean` and `choice` (`{{env:choice:dev,staging,prod}}`). Never gate a mutating
-action behind a defaulted variable.
+`boolean` and `choice` (`{{env:choice:dev,staging,prod}}`). A `choice` variable is
+always defaulted to its first option and therefore never prompts — do not use one
+as a confirmation gate (e.g. `{{confirm:choice:no,yes}}` silently resolves to `no`
+and never asks). Never gate a mutating action behind a defaulted variable.
 
 `{{connection.host}}`, `{{connection.username}}`, `{{connection.name}}`, `{{date}}`,
 `{{datetime}}`, `{{timestamp}}` and `{{clipboard}}` resolve automatically.
@@ -249,6 +254,11 @@ Beyond the rejection criteria above, aim for:
 3. **`sudo` only on the line that needs it**, never wrapping the whole script.
 4. **Typed variables** where the choice is genuinely the user's.
 5. **End with evidence** — a version, a status, a count that proves it worked.
+6. **Always quote `"{{var}}"` expansions.** Substitution is a blind textual
+   replace — no quoting or validation happens on Voltius's side — so an
+   unquoted variable in a destructive command (`rm -rf {{path}}`) is shell
+   injection. Assign it to a quoted shell variable first, as every shipped
+   snippet does (`SVC="{{service}}"`), then use `"$SVC"`.
 
 ### Review checklist
 
