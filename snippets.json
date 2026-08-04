@@ -1,0 +1,299 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "claude-code-install",
+      "kind": "snippet",
+      "name": "Install Claude Code",
+      "description": "Anthropic's official native installer for macOS, Linux and WSL, then print the version to confirm.",
+      "author": "voltius",
+      "tags": [
+        "install",
+        "ai",
+        "cli"
+      ],
+      "updated_at": "2026-08-04",
+      "snippets": [
+        {
+          "_eid": "s0",
+          "name": "Install Claude Code",
+          "description": "Installs to ~/.local/bin and self-updates in the background.",
+          "tags": [
+            "install",
+            "ai"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "curl -fsSL https://claude.ai/install.sh | bash\n\n# The installer adds ~/.local/bin to PATH in your shell profile; this session\n# may not have picked it up yet.\nexport PATH=\"$HOME/.local/bin:$PATH\"\nclaude --version"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "disk-hogs",
+      "kind": "snippet",
+      "name": "What is filling the disk",
+      "description": "Filesystem usage, then the 20 largest directories under a path you choose.",
+      "author": "voltius",
+      "tags": [
+        "disk",
+        "diagnostics"
+      ],
+      "updated_at": "2026-08-04",
+      "snippets": [
+        {
+          "_eid": "s0",
+          "name": "What is filling the disk",
+          "description": "Read-only — it reports, it never deletes.",
+          "tags": [
+            "disk",
+            "diagnostics"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "ROOT={{path}}\n\ndf -h -x tmpfs -x devtmpfs\necho\necho \"Largest directories under $ROOT:\"\nsudo du -h -x --max-depth=3 \"$ROOT\" 2>/dev/null | sort -rh | head -20"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "docker-install",
+      "kind": "pack",
+      "name": "Install Docker",
+      "description": "Docker's official convenience script, then the post-install step that lets your user run docker without sudo.",
+      "author": "voltius",
+      "tags": [
+        "install",
+        "docker"
+      ],
+      "updated_at": "2026-08-04",
+      "snippets": [
+        {
+          "_eid": "s0",
+          "name": "Install Docker Engine",
+          "description": "Docker's convenience script. Docker documents it for development, not production — on a production host install from the apt/dnf repository instead.",
+          "tags": [
+            "install",
+            "docker"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "curl -fsSL https://get.docker.com -o /tmp/get-docker.sh\n\n# Read it before running it — this is the whole point of downloading first.\nless /tmp/get-docker.sh\n\nsudo sh /tmp/get-docker.sh\nrm -f /tmp/get-docker.sh\nsudo docker version"
+            }
+          ]
+        },
+        {
+          "_eid": "s1",
+          "name": "Run docker without sudo",
+          "description": "Adds you to the docker group. Note this grants root-equivalent access to the host — that is inherent to the docker group, not to this snippet.",
+          "tags": [
+            "docker"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "sudo groupadd -f docker\nsudo usermod -aG docker \"$USER\"\n\necho \"Added $USER to the docker group. Log out and back in for it to take effect,\"\necho \"or run: newgrp docker\""
+            }
+          ]
+        },
+        {
+          "_eid": "s2",
+          "name": "Verify Docker works",
+          "description": "Runs hello-world and prints the daemon's disk usage.",
+          "tags": [
+            "docker"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "docker run --rm hello-world\ndocker system df"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "node-nvm-pnpm",
+      "kind": "pack",
+      "name": "Install Node (nvm) + pnpm",
+      "description": "nvm, the current Node LTS, and pnpm enabled through Corepack.",
+      "author": "voltius",
+      "tags": [
+        "install",
+        "node",
+        "javascript"
+      ],
+      "updated_at": "2026-08-04",
+      "snippets": [
+        {
+          "_eid": "s0",
+          "name": "Install nvm",
+          "description": "Pinned to a release tag rather than a branch, so the script you run is the one that was reviewed.",
+          "tags": [
+            "install",
+            "node"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.6/install.sh | bash\n\n# nvm is a shell function, so a new shell (or this) is needed before nvm works.\nexport NVM_DIR=\"$HOME/.nvm\"\n[ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"\nnvm --version"
+            }
+          ]
+        },
+        {
+          "_eid": "s1",
+          "name": "Install Node LTS",
+          "description": "Installs the current LTS and makes it the default for new shells.",
+          "tags": [
+            "node"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "export NVM_DIR=\"$HOME/.nvm\"\n[ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"\n\nnvm install --lts\nnvm alias default 'lts/*'\nnode --version\nnpm --version"
+            }
+          ]
+        },
+        {
+          "_eid": "s2",
+          "name": "Enable pnpm via Corepack",
+          "description": "Corepack ships with Node, so pnpm needs no separate installer.",
+          "tags": [
+            "node",
+            "pnpm"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "export NVM_DIR=\"$HOME/.nvm\"\n[ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"\n\nnpm install --global corepack@latest\ncorepack enable pnpm\npnpm --version"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "port-in-use",
+      "kind": "snippet",
+      "name": "Is port {{port}} in use?",
+      "description": "Shows what is listening on a port, and the process that owns it. Prompts for the port when you run it.",
+      "author": "voltius",
+      "tags": [
+        "network",
+        "diagnostics"
+      ],
+      "updated_at": "2026-08-04",
+      "snippets": [
+        {
+          "_eid": "s0",
+          "name": "Is port {{port}} in use?",
+          "description": "Falls back from ss to lsof to netstat, so it works on a minimal host.",
+          "tags": [
+            "network",
+            "diagnostics"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "PORT={{port}}\n\nif command -v ss >/dev/null 2>&1; then\n  OUT=$(ss -tulpnH \"sport = :$PORT\" 2>/dev/null)\nelif command -v lsof >/dev/null 2>&1; then\n  OUT=$(lsof -nP -iTCP:\"$PORT\" -sTCP:LISTEN 2>/dev/null; lsof -nP -iUDP:\"$PORT\" 2>/dev/null)\nelse\n  OUT=$(netstat -tulpn 2>/dev/null | grep -E \"[:.]$PORT[[:space:]]\")\nfi\n\nif [ -n \"$OUT\" ]; then\n  echo \"Port $PORT is IN USE:\"\n  echo \"$OUT\"\nelse\n  echo \"Port $PORT is free (nothing listening).\"\n  echo \"Note: without sudo you may not see sockets owned by other users.\"\nfi"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "uv-install",
+      "kind": "snippet",
+      "name": "Install uv",
+      "description": "Astral's standalone installer for uv, the fast Python package and project manager.",
+      "author": "voltius",
+      "tags": [
+        "install",
+        "python"
+      ],
+      "updated_at": "2026-08-04",
+      "snippets": [
+        {
+          "_eid": "s0",
+          "name": "Install uv",
+          "description": "No Python needed first — uv ships its own.",
+          "tags": [
+            "install",
+            "python"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "curl -LsSf https://astral.sh/uv/install.sh | sh\n\n# The installer writes to ~/.local/bin and updates your shell profile.\nexport PATH=\"$HOME/.local/bin:$PATH\"\nuv --version"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "whats-listening",
+      "kind": "snippet",
+      "name": "What is listening",
+      "description": "Every listening TCP and UDP socket with the owning process, sorted by port.",
+      "author": "voltius",
+      "tags": [
+        "network",
+        "diagnostics"
+      ],
+      "updated_at": "2026-08-04",
+      "snippets": [
+        {
+          "_eid": "s0",
+          "name": "What is listening",
+          "tags": [
+            "network",
+            "diagnostics"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "# sudo shows the process for sockets owned by other users; without it those\n# rows still appear, just without a name.\nif command -v ss >/dev/null 2>&1; then\n  sudo ss -tulpn 2>/dev/null || ss -tulpn\nelse\n  sudo netstat -tulpn 2>/dev/null || netstat -tulpn\nfi"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
