@@ -257,8 +257,8 @@ Beyond the rejection criteria above, aim for:
 6. **Always quote `"{{var}}"` expansions.** Substitution is a blind textual
    replace — no quoting or validation happens on Voltius's side — so an
    unquoted variable in a destructive command (`rm -rf {{path}}`) is shell
-   injection. Assign it to a quoted shell variable first, as every shipped
-   snippet does (`SVC="{{service}}"`), then use `"$SVC"`.
+   injection. Assign it to a quoted shell variable first (`SVC="{{service}}"`),
+   then use `"$SVC"`.
 
 ### Review checklist
 
