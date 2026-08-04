@@ -361,6 +361,77 @@
           ]
         }
       ]
+    },
+    {
+      "id": "persistent-sessions",
+      "kind": "pack",
+      "name": "Persistent sessions (tmux/screen)",
+      "description": "Make your SSH sessions survive a dropped connection, check whether a host already does, and clean up the ones you left behind.",
+      "author": "voltius",
+      "tags": [
+        "tmux",
+        "screen",
+        "sessions"
+      ],
+      "updated_at": "2026-08-04",
+      "snippets": [
+        {
+          "_eid": "s0",
+          "name": "Install tmux",
+          "description": "Installs tmux with whichever package manager this host has. Clears the \"session will not survive disconnects\" warning.",
+          "tags": [
+            "install",
+            "tmux"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "# Voltius wraps an SSH session in tmux (or screen) so it survives a dropped\n# connection. With neither installed the session dies with the link, which is\n# what the \"tmux/screen not found\" banner is telling you.\nif command -v tmux >/dev/null 2>&1; then\n  echo \"tmux is already installed\"\nelse\n  if   command -v apt-get >/dev/null 2>&1; then sudo apt-get update && sudo apt-get install -y tmux\n  elif command -v dnf     >/dev/null 2>&1; then sudo dnf install -y tmux\n  elif command -v apk     >/dev/null 2>&1; then sudo apk add --no-cache tmux\n  elif command -v pacman  >/dev/null 2>&1; then sudo pacman -S --noconfirm tmux\n  else echo \"no supported package manager found\"; fi\nfi\ntmux -V\n"
+            }
+          ]
+        },
+        {
+          "_eid": "s1",
+          "name": "Will this host keep my session alive?",
+          "description": "Reports which multiplexer is installed, lists the sessions already running, and says what that means for a dropped connection.",
+          "tags": [
+            "tmux",
+            "screen",
+            "diagnostics"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "# Voltius prefers tmux, falls back to screen, and warns when neither exists.\nscreen_ls() {\n  if command -v screen >/dev/null 2>&1; then\n    SCR_OUT=$(screen -ls 2>/dev/null)\n    SCR_RC=$?\n    if [ \"$SCR_RC\" -eq 0 ] && [ -n \"$SCR_OUT\" ]; then\n      printf '%s\\n' \"$SCR_OUT\"\n    else\n      echo \"screen: no sessions\"\n    fi\n  fi\n}\n\nfor m in tmux screen; do\n  if command -v \"$m\" >/dev/null 2>&1; then\n    case \"$m\" in\n      tmux)   VER=$(tmux -V 2>&1 | head -1) ;;\n      screen) VER=$(screen -v 2>&1 | head -1) ;;\n    esac\n    if [ -n \"$VER\" ]; then\n      echo \"$m: $VER\"\n    else\n      echo \"$m: installed (version not reported)\"\n    fi\n  else\n    echo \"$m: not installed\"\n  fi\ndone\n\necho\necho \"== Sessions on this host ==\"\ncommand -v tmux >/dev/null 2>&1 && { tmux ls 2>/dev/null || echo \"tmux: no sessions\"; }\nscreen_ls\n\necho\nif command -v tmux >/dev/null 2>&1; then\n  echo \"=> Your session survives a dropped connection (tmux).\"\nelif command -v screen >/dev/null 2>&1; then\n  echo \"=> Your session survives a dropped connection (screen).\"\nelse\n  echo \"=> Nothing persistent here: a dropped connection kills the session.\"\n  echo \"   Install tmux to fix that.\"\nfi\n"
+            }
+          ]
+        },
+        {
+          "_eid": "s2",
+          "name": "Kill a stale session",
+          "description": "Lists your sessions, kills the one you name, then lists them again. A name that does not exist kills nothing.",
+          "tags": [
+            "tmux",
+            "screen",
+            "maintenance"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "# The list is printed before anything is killed, on purpose — kill the wrong\n# session and you lose whatever was running inside it. Both kills below only\n# fire on an exact name match: tmux and screen both do prefix matching by\n# default, so an unanchored match could kill session \"foobar\" when you asked\n# to kill \"foo\".\nTARGET=\"{{session}}\"\n\nscreen_ls() {\n  if command -v screen >/dev/null 2>&1; then\n    SCR_OUT=$(screen -ls 2>/dev/null)\n    SCR_RC=$?\n    if [ \"$SCR_RC\" -eq 0 ] && [ -n \"$SCR_OUT\" ]; then\n      printf '%s\\n' \"$SCR_OUT\"\n    else\n      echo \"screen: no sessions\"\n    fi\n  fi\n}\n\n# Exact-match check for screen: screen -S/-X quit prefix-matches like tmux\n# does, and unlike tmux there is no \"=name\" anchor to force an exact match,\n# so we parse `screen -ls` ourselves and only proceed on an exact hit.\nscreen_has_exact() {\n  command -v screen >/dev/null 2>&1 || return 1\n  SCR_OUT=$(screen -ls 2>/dev/null)\n  SCR_RC=$?\n  [ \"$SCR_RC\" -eq 0 ] && [ -n \"$SCR_OUT\" ] || return 1\n  printf '%s\\n' \"$SCR_OUT\" | awk -F'\\t' -v t=\"$1\" '\n    NF >= 2 { id = $2; sub(/^[0-9]+\\./, \"\", id); if (id == t) { found = 1; exit } }\n    END { exit !found }\n  '\n}\n\necho \"== Sessions before ==\"\ncommand -v tmux >/dev/null 2>&1 && { tmux ls 2>/dev/null || echo \"tmux: no sessions\"; }\nscreen_ls\n\necho\necho \"== Killing '$TARGET' ==\"\nif tmux kill-session -t \"=$TARGET\" 2>/dev/null; then\n  echo \"killed tmux session $TARGET\"\nelif screen_has_exact \"$TARGET\" && screen -S \"$TARGET\" -X quit 2>/dev/null; then\n  echo \"killed screen session $TARGET\"\nelse\n  echo \"no session named '$TARGET' — nothing killed\"\nfi\n\necho\necho \"== Sessions after ==\"\ncommand -v tmux >/dev/null 2>&1 && { tmux ls 2>/dev/null || echo \"tmux: no sessions\"; }\nscreen_ls\n"
+            }
+          ]
+        }
+      ]
     }
   ]
 }
