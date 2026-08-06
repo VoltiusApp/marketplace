@@ -75,16 +75,16 @@
     "name": "System Metrics",
     "author": "Voltius",
     "description": "Real-time CPU, RAM, network, and disk metrics for local and SSH sessions.",
-    "repo": "https://github.com/VoltiusApp/voltius/releases/download/plugin-monitoring-v1.1.0",
-    "version": "1.1.0",
-    "hash": "c57294849f1bd247d1cfb3b9b961200bab77546c9ba539b1261f57082ca6f007",
+    "repo": "https://github.com/VoltiusApp/voltius/releases/download/plugin-monitoring-v1.1.1",
+    "version": "1.1.1",
+    "hash": "a870935ece503b395b94f70bcf9919e792ab9438cd95b6cc256014beeb81167a",
     "permissions": [
       "metrics:read",
       "sessions:read",
       "right-panel",
       "ui"
     ],
-    "minAppVersion": "0.15.0",
+    "minAppVersion": "0.18.0",
     "tags": [
       "monitoring",
       "metrics"
@@ -97,9 +97,9 @@
     "name": "Docker",
     "author": "Voltius",
     "description": "Manage Docker containers, images, volumes, and networks for local and SSH sessions.",
-    "repo": "https://github.com/VoltiusApp/voltius/releases/download/plugin-docker-v1.2.0",
-    "version": "1.2.0",
-    "hash": "215f14617b51c2d8ebf5b4e2a7151ff78acd55954e93360cf311ecbd158b00cb",
+    "repo": "https://github.com/VoltiusApp/voltius/releases/download/plugin-docker-v1.2.1",
+    "version": "1.2.1",
+    "hash": "cda51388a4dbf3851ad09a3882e7e30a5ae7cc0e3ccfebcab97da3e5df6d55c9",
     "permissions": [
       "sessions:read",
       "right-panel",
@@ -109,7 +109,7 @@
       "docker:manage",
       "ui"
     ],
-    "minAppVersion": "0.15.0",
+    "minAppVersion": "0.18.0",
     "tags": [
       "docker",
       "containers"
@@ -121,9 +121,9 @@
     "name": "Process Manager",
     "author": "Voltius",
     "description": "Monitor and manage running processes for local and SSH sessions.",
-    "repo": "https://github.com/VoltiusApp/voltius/releases/download/plugin-process-manager-v1.1.0",
-    "version": "1.1.0",
-    "hash": "9ce617c9cbad63e26570ec6078af579be4e882109811a548bcc863073a7bcc0f",
+    "repo": "https://github.com/VoltiusApp/voltius/releases/download/plugin-process-manager-v1.1.1",
+    "version": "1.1.1",
+    "hash": "18a5f14e09197bf5c848e576d8e7a17824810d3d61c36c70ff5e75896bf79b3c",
     "permissions": [
       "processes:read",
       "processes:manage",
@@ -131,7 +131,7 @@
       "right-panel",
       "ui"
     ],
-    "minAppVersion": "0.15.0",
+    "minAppVersion": "0.18.0",
     "tags": [
       "system",
       "processes"
@@ -143,9 +143,9 @@
     "name": "Proxmox LXC",
     "author": "Voltius",
     "description": "Manage Proxmox VE LXC containers and snapshots over SSH.",
-    "repo": "https://github.com/VoltiusApp/voltius/releases/download/plugin-proxmox-v1.1.0",
-    "version": "1.1.0",
-    "hash": "9f9d35dc5b0374de144ade099c52dccfcb1ad16ffaa3a4a787edd61db84688a6",
+    "repo": "https://github.com/VoltiusApp/voltius/releases/download/plugin-proxmox-v1.1.1",
+    "version": "1.1.1",
+    "hash": "0e95c68305ea85e672ac943fb07d7b27d94762af6dad3c1bafbcf2eca9bdb7bc",
     "permissions": [
       "sessions:read",
       "right-panel",
@@ -155,7 +155,7 @@
       "connections:read",
       "ui"
     ],
-    "minAppVersion": "0.15.0",
+    "minAppVersion": "0.18.0",
     "tags": [
       "proxmox",
       "virtualization"
