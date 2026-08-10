@@ -1,17 +1,17 @@
 {
   "id": "gdu-install",
   "kind": "snippet",
-  "name": "Install gdu",
-  "description": "An interactive disk usage browser — walk the tree instead of reading a list.",
+  "name": "Install gdu (Linux)",
+  "description": "An interactive disk usage browser — walk the tree instead of reading a list. Linux only: the fallback downloads the Linux release binary.",
   "author": "voltius",
-  "tags": ["install", "disk"],
-  "updated_at": "2026-08-04",
+  "tags": ["linux", "install", "disk"],
+  "updated_at": "2026-08-10",
   "snippets": [
     {
       "_eid": "s0",
-      "name": "Install gdu",
+      "name": "Install gdu (Linux)",
       "description": "Uses the distro package where there is one, otherwise the official release binary into ~/.local/bin.",
-      "tags": ["install", "disk"],
+      "tags": ["linux", "install", "disk"],
       "favorite": false,
       "only_for_connection_tags": [],
       "only_for_distros": [],

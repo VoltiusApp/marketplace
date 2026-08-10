@@ -1,17 +1,17 @@
 {
   "id": "uv-install",
   "kind": "snippet",
-  "name": "Install uv",
-  "description": "Astral's standalone installer for uv, the fast Python package and project manager.",
+  "name": "Install uv (Linux/macOS)",
+  "description": "Astral's standalone installer for uv, the fast Python package and project manager. Linux and macOS — on Windows use the PowerShell installer from astral.sh.",
   "author": "voltius",
-  "tags": ["install", "python"],
-  "updated_at": "2026-08-04",
+  "tags": ["linux", "macos", "install", "python"],
+  "updated_at": "2026-08-10",
   "snippets": [
     {
       "_eid": "s0",
-      "name": "Install uv",
+      "name": "Install uv (Linux/macOS)",
       "description": "No Python needed first — uv ships its own.",
-      "tags": ["install", "python"],
+      "tags": ["linux", "macos", "install", "python"],
       "favorite": false,
       "only_for_connection_tags": [],
       "only_for_distros": [],

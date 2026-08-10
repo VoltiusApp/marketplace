@@ -1,17 +1,17 @@
 {
   "id": "firewall-status",
   "kind": "snippet",
-  "name": "Firewall status",
-  "description": "What this host is actually filtering, via ufw, firewalld, nftables or iptables.",
+  "name": "Firewall status (Linux)",
+  "description": "What this host is actually filtering, via ufw, firewalld, nftables or iptables. Linux only.",
   "author": "voltius",
-  "tags": ["network", "security"],
-  "updated_at": "2026-08-04",
+  "tags": ["linux", "network", "security"],
+  "updated_at": "2026-08-10",
   "snippets": [
     {
       "_eid": "s0",
-      "name": "Firewall status",
+      "name": "Firewall status (Linux)",
       "description": "Read-only: reports the active ruleset and changes nothing.",
-      "tags": ["network", "security"],
+      "tags": ["linux", "network", "security"],
       "favorite": false,
       "only_for_connection_tags": [],
       "only_for_distros": [],

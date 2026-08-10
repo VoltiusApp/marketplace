@@ -1,17 +1,17 @@
 {
   "id": "port-in-use",
   "kind": "snippet",
-  "name": "Is port {{port}} in use?",
-  "description": "Shows what is listening on a port, and the process that owns it. Prompts for the port when you run it.",
+  "name": "Is port {{port}} in use? (Linux/macOS)",
+  "description": "Shows what is listening on a port, and the process that owns it. Prompts for the port when you run it. Linux and macOS — macOS takes the lsof branch.",
   "author": "voltius",
-  "tags": ["network", "diagnostics"],
-  "updated_at": "2026-08-04",
+  "tags": ["linux", "macos", "network", "diagnostics"],
+  "updated_at": "2026-08-10",
   "snippets": [
     {
       "_eid": "s0",
-      "name": "Is port {{port}} in use?",
+      "name": "Is port {{port}} in use? (Linux/macOS)",
       "description": "Falls back from ss to lsof to netstat, so it works on a minimal host.",
-      "tags": ["network", "diagnostics"],
+      "tags": ["linux", "macos", "network", "diagnostics"],
       "favorite": false,
       "only_for_connection_tags": [],
       "only_for_distros": [],

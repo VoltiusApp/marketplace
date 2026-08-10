@@ -1,17 +1,17 @@
 {
   "id": "update-packages",
   "kind": "snippet",
-  "name": "Update all packages",
-  "description": "Prints what would be upgraded, then upgrades it. Works on apt, dnf, apk and pacman.",
+  "name": "Update all packages (Linux)",
+  "description": "Prints what would be upgraded, then upgrades it. Works on apt, dnf, apk and pacman — Linux only.",
   "author": "voltius",
-  "tags": ["maintenance", "packages"],
-  "updated_at": "2026-08-04",
+  "tags": ["linux", "maintenance", "packages"],
+  "updated_at": "2026-08-10",
   "snippets": [
     {
       "_eid": "s0",
-      "name": "Update all packages",
+      "name": "Update all packages (Linux)",
       "description": "The upgrade list comes first, so nothing changes before you have seen it.",
-      "tags": ["maintenance", "packages"],
+      "tags": ["linux", "maintenance", "packages"],
       "favorite": false,
       "only_for_connection_tags": [],
       "only_for_distros": [],
