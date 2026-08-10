@@ -1,16 +1,16 @@
 {
   "id": "whats-listening",
   "kind": "snippet",
-  "name": "What is listening",
-  "description": "Every listening TCP and UDP socket with the owning process, sorted by port.",
+  "name": "What is listening (Linux)",
+  "description": "Every listening TCP and UDP socket with the owning process, sorted by port. Linux only — it uses ss or Linux netstat flags.",
   "author": "voltius",
-  "tags": ["network", "diagnostics"],
-  "updated_at": "2026-08-04",
+  "tags": ["linux", "network", "diagnostics"],
+  "updated_at": "2026-08-10",
   "snippets": [
     {
       "_eid": "s0",
-      "name": "What is listening",
-      "tags": ["network", "diagnostics"],
+      "name": "What is listening (Linux)",
+      "tags": ["linux", "network", "diagnostics"],
       "favorite": false,
       "only_for_connection_tags": [],
       "only_for_distros": [],

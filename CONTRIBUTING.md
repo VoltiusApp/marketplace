@@ -200,6 +200,33 @@ The easiest way to author an entry is to build it in Voltius and use **Share to
 community** on the snippet or folder — it emits exactly this format for
 `snippets/entries/<id>.json`.
 
+### Platforms
+
+Nothing filters a snippet by platform. `only_for_distros` is carried through the
+schema but the client does not act on it, and the community browser shows every
+entry regardless of what the user is connected to — so **the name is the only
+signal a user gets before running a script on the wrong kind of host.**
+
+Say the platform in the name, in parentheses at the end: `(Linux)`,
+`(Linux/macOS)`, `(macOS/Linux/WSL)`, `(Windows PowerShell)`. Put it where the
+platform is actually decided:
+
+- `kind: "snippet"` — on both the entry `name` and the snippet's `name`. Only
+  the snippet name survives installation, so a suffix on the entry alone
+  disappears the moment someone installs it.
+- `kind: "pack"`, one platform — on the entry `name`, which becomes the folder
+  name. The snippets inside inherit it.
+- `kind: "pack"`, one snippet per platform — on each snippet's `name`, leaving
+  the entry name unsuffixed. `claude-code-install` is the worked example: a sh
+  installer and a PowerShell installer under one entry.
+
+Add the matching platform tags (`linux`, `macos`, `windows`) as the **first**
+tags on the entry and on each snippet — the browser searches tags, and a card
+renders only the first three.
+
+A snippet that is not POSIX `sh` must say so in its first comment line, because
+it will otherwise be pasted into a shell that cannot run it.
+
 ### Variables
 
 `{{name}}` prompts the user. `{{name:type:default}}` does not — a variable with any
@@ -248,7 +275,8 @@ Beyond the rejection criteria above, aim for:
 
 1. **POSIX `sh`, no bashisms.** Detect capabilities and degrade: `ss → lsof → netstat`,
    `systemctl → rc-service → service`, `apt-get → dnf → apk → pacman`. Never assume
-   systemd or apt.
+   systemd or apt. A PowerShell snippet is the one exception, and only as the
+   Windows half of a pair — see [Platforms](#platforms).
 2. **Show, then act.** A snippet that changes the host prints what it is about to
    touch first, and is idempotent on a second run.
 3. **`sudo` only on the line that needs it**, never wrapping the whole script.
@@ -265,6 +293,8 @@ Beyond the rejection criteria above, aim for:
 - [ ] Parses and passes `node scripts/build-snippets.mjs --check`, and every
       `_eid` referenced by a step exists in the same entry
 - [ ] Runs on Alpine/busybox, Debian/glibc and a systemd host, or degrades with a clear message
+- [ ] The platform is in the name, on the level that survives installation, and
+      in the first tags (see [Platforms](#platforms))
 - [ ] Mutating steps are idempotent and print before they act
 - [ ] No host-specific value, no credential handling
 - [ ] No destructive command without an obvious guard, no unexplained network fetch

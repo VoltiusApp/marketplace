@@ -3,22 +3,27 @@
   "entries": [
     {
       "id": "claude-code-install",
-      "kind": "snippet",
+      "kind": "pack",
       "name": "Install Claude Code",
-      "description": "Anthropic's official native installer for macOS, Linux and WSL, then print the version to confirm.",
+      "description": "Anthropic's official installer in both flavours: a POSIX sh one-liner for macOS, Linux and WSL, and a PowerShell one for native Windows. Pick the one that matches the shell you are running in.",
       "author": "voltius",
       "tags": [
+        "linux",
+        "macos",
+        "windows",
         "install",
         "ai",
         "cli"
       ],
-      "updated_at": "2026-08-04",
+      "updated_at": "2026-08-10",
       "snippets": [
         {
           "_eid": "s0",
-          "name": "Install Claude Code",
-          "description": "Installs to ~/.local/bin and self-updates in the background.",
+          "name": "Install Claude Code (macOS/Linux/WSL)",
+          "description": "POSIX sh. Installs to ~/.local/bin and self-updates in the background. Also the right one for a Git Bash or WSL shell on Windows.",
           "tags": [
+            "linux",
+            "macos",
             "install",
             "ai"
           ],
@@ -31,26 +36,47 @@
               "content": "curl -fsSL https://claude.ai/install.sh | bash\n\n# The installer adds ~/.local/bin to PATH in your shell profile; this session\n# may not have picked it up yet.\nexport PATH=\"$HOME/.local/bin:$PATH\"\nclaude --version"
             }
           ]
+        },
+        {
+          "_eid": "s1",
+          "name": "Install Claude Code (Windows PowerShell)",
+          "description": "PowerShell, for a local Windows shell. Not for cmd.exe, and not for a session on a Linux host — those want the macOS/Linux/WSL snippet.",
+          "tags": [
+            "windows",
+            "install",
+            "ai"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "# PowerShell, not POSIX sh: run this in PowerShell or Windows Terminal. In\n# cmd.exe, Git Bash or WSL it will not work — Git Bash and WSL want the\n# macOS/Linux/WSL snippet instead.\nirm https://claude.ai/install.ps1 | iex\n\n# The installer puts claude.exe under %USERPROFILE%\\.local\\bin and adds that\n# directory to your user PATH, but this session read PATH before that happened.\n$bin = Join-Path $env:USERPROFILE '.local\\bin'\nif (Test-Path $bin) { $env:Path = \"$bin;$env:Path\" }\n\nif (Get-Command claude -ErrorAction SilentlyContinue) {\n  claude --version\n} else {\n  Write-Warning \"Installed, but 'claude' is not on this session's PATH yet. Open a new PowerShell window and run: claude --version\"\n}"
+            }
+          ]
         }
       ]
     },
     {
       "id": "disk-hogs",
       "kind": "snippet",
-      "name": "What is filling the disk",
-      "description": "Filesystem usage, then the 20 largest directories under a path you choose.",
+      "name": "What is filling the disk (Linux)",
+      "description": "Filesystem usage, then the 20 largest directories under a path you choose. Linux only — it relies on GNU du and Linux df flags.",
       "author": "voltius",
       "tags": [
+        "linux",
         "disk",
         "diagnostics"
       ],
-      "updated_at": "2026-08-04",
+      "updated_at": "2026-08-10",
       "snippets": [
         {
           "_eid": "s0",
-          "name": "What is filling the disk",
+          "name": "What is filling the disk (Linux)",
           "description": "Read-only — it reports, it never deletes.",
           "tags": [
+            "linux",
             "disk",
             "diagnostics"
           ],
@@ -69,20 +95,22 @@
     {
       "id": "docker-install",
       "kind": "pack",
-      "name": "Install Docker",
-      "description": "Docker's official convenience script, then the post-install step that lets your user run docker without sudo.",
+      "name": "Install Docker (Linux)",
+      "description": "Docker's official convenience script, then the post-install step that lets your user run docker without sudo. Linux hosts only — get.docker.com does not serve macOS or Windows.",
       "author": "voltius",
       "tags": [
+        "linux",
         "install",
         "docker"
       ],
-      "updated_at": "2026-08-04",
+      "updated_at": "2026-08-10",
       "snippets": [
         {
           "_eid": "s0",
           "name": "Install Docker Engine",
           "description": "Docker's convenience script. Docker documents it for development, not production — on a production host install from the apt/dnf repository instead.",
           "tags": [
+            "linux",
             "install",
             "docker"
           ],
@@ -101,6 +129,7 @@
           "name": "Run docker without sudo",
           "description": "Adds you to the docker group. Note this grants root-equivalent access to the host — that is inherent to the docker group, not to this snippet.",
           "tags": [
+            "linux",
             "docker"
           ],
           "favorite": false,
@@ -118,6 +147,7 @@
           "name": "Verify Docker works",
           "description": "Runs hello-world and prints the daemon's disk usage.",
           "tags": [
+            "linux",
             "docker"
           ],
           "favorite": false,
@@ -135,20 +165,22 @@
     {
       "id": "firewall-status",
       "kind": "snippet",
-      "name": "Firewall status",
-      "description": "What this host is actually filtering, via ufw, firewalld, nftables or iptables.",
+      "name": "Firewall status (Linux)",
+      "description": "What this host is actually filtering, via ufw, firewalld, nftables or iptables. Linux only.",
       "author": "voltius",
       "tags": [
+        "linux",
         "network",
         "security"
       ],
-      "updated_at": "2026-08-04",
+      "updated_at": "2026-08-10",
       "snippets": [
         {
           "_eid": "s0",
-          "name": "Firewall status",
+          "name": "Firewall status (Linux)",
           "description": "Read-only: reports the active ruleset and changes nothing.",
           "tags": [
+            "linux",
             "network",
             "security"
           ],
@@ -167,20 +199,22 @@
     {
       "id": "gdu-install",
       "kind": "snippet",
-      "name": "Install gdu",
-      "description": "An interactive disk usage browser — walk the tree instead of reading a list.",
+      "name": "Install gdu (Linux)",
+      "description": "An interactive disk usage browser — walk the tree instead of reading a list. Linux only: the fallback downloads the Linux release binary.",
       "author": "voltius",
       "tags": [
+        "linux",
         "install",
         "disk"
       ],
-      "updated_at": "2026-08-04",
+      "updated_at": "2026-08-10",
       "snippets": [
         {
           "_eid": "s0",
-          "name": "Install gdu",
+          "name": "Install gdu (Linux)",
           "description": "Uses the distro package where there is one, otherwise the official release binary into ~/.local/bin.",
           "tags": [
+            "linux",
             "install",
             "disk"
           ],
@@ -199,21 +233,25 @@
     {
       "id": "node-nvm-pnpm",
       "kind": "pack",
-      "name": "Install Node (nvm) + pnpm",
-      "description": "nvm, the current Node LTS, and pnpm enabled through Corepack.",
+      "name": "Install Node via nvm + pnpm (Linux/macOS)",
+      "description": "nvm, the current Node LTS, and pnpm enabled through Corepack. Linux and macOS — on Windows use nvm-windows, or run this inside WSL.",
       "author": "voltius",
       "tags": [
+        "linux",
+        "macos",
         "install",
         "node",
         "javascript"
       ],
-      "updated_at": "2026-08-04",
+      "updated_at": "2026-08-10",
       "snippets": [
         {
           "_eid": "s0",
           "name": "Install nvm",
           "description": "Pinned to a release tag rather than a branch, so the script you run is the one that was reviewed.",
           "tags": [
+            "linux",
+            "macos",
             "install",
             "node"
           ],
@@ -232,6 +270,8 @@
           "name": "Install Node LTS",
           "description": "Installs the current LTS and makes it the default for new shells.",
           "tags": [
+            "linux",
+            "macos",
             "node"
           ],
           "favorite": false,
@@ -249,6 +289,8 @@
           "name": "Enable pnpm via Corepack",
           "description": "Corepack ships with Node, so pnpm needs no separate installer.",
           "tags": [
+            "linux",
+            "macos",
             "node",
             "pnpm"
           ],
@@ -267,21 +309,23 @@
     {
       "id": "persistent-sessions",
       "kind": "pack",
-      "name": "Persistent sessions (tmux/screen)",
-      "description": "Make your SSH sessions survive a dropped connection, check whether a host already does, and clean up the ones you left behind.",
+      "name": "Persistent sessions with tmux or screen (Linux)",
+      "description": "Make your SSH sessions survive a dropped connection, check whether a host already does, and clean up the ones you left behind. The install step is Linux only; the report and kill steps also work on macOS.",
       "author": "voltius",
       "tags": [
+        "linux",
         "tmux",
         "screen",
         "sessions"
       ],
-      "updated_at": "2026-08-04",
+      "updated_at": "2026-08-10",
       "snippets": [
         {
           "_eid": "s0",
           "name": "Install tmux",
           "description": "Installs tmux with whichever package manager this host has. Clears the \"session will not survive disconnects\" warning.",
           "tags": [
+            "linux",
             "install",
             "tmux"
           ],
@@ -300,6 +344,7 @@
           "name": "Will this host keep my session alive?",
           "description": "Reports which multiplexer is installed, lists the sessions already running, and says what that means for a dropped connection.",
           "tags": [
+            "linux",
             "tmux",
             "screen",
             "diagnostics"
@@ -319,6 +364,7 @@
           "name": "Kill a stale session",
           "description": "Lists your sessions, kills the one you name, then lists them again. A name that does not exist kills nothing.",
           "tags": [
+            "linux",
             "tmux",
             "screen",
             "maintenance"
@@ -338,20 +384,24 @@
     {
       "id": "port-in-use",
       "kind": "snippet",
-      "name": "Is port {{port}} in use?",
-      "description": "Shows what is listening on a port, and the process that owns it. Prompts for the port when you run it.",
+      "name": "Is port {{port}} in use? (Linux/macOS)",
+      "description": "Shows what is listening on a port, and the process that owns it. Prompts for the port when you run it. Linux and macOS — macOS takes the lsof branch.",
       "author": "voltius",
       "tags": [
+        "linux",
+        "macos",
         "network",
         "diagnostics"
       ],
-      "updated_at": "2026-08-04",
+      "updated_at": "2026-08-10",
       "snippets": [
         {
           "_eid": "s0",
-          "name": "Is port {{port}} in use?",
+          "name": "Is port {{port}} in use? (Linux/macOS)",
           "description": "Falls back from ss to lsof to netstat, so it works on a minimal host.",
           "tags": [
+            "linux",
+            "macos",
             "network",
             "diagnostics"
           ],
@@ -370,20 +420,22 @@
     {
       "id": "server-triage",
       "kind": "pack",
-      "name": "Server triage",
-      "description": "Why did it die, what is eating the disk that you can safely reclaim, and who has been logging in.",
+      "name": "Server triage (Linux)",
+      "description": "Why did it die, what is eating the disk that you can safely reclaim, and who has been logging in. Linux only.",
       "author": "voltius",
       "tags": [
+        "linux",
         "diagnostics",
         "triage"
       ],
-      "updated_at": "2026-08-04",
+      "updated_at": "2026-08-10",
       "snippets": [
         {
           "_eid": "s0",
           "name": "Why did it die",
           "description": "Recent boots, OOM kills, failed services and the tail of the kernel log.",
           "tags": [
+            "linux",
             "diagnostics"
           ],
           "favorite": false,
@@ -401,6 +453,7 @@
           "name": "Reclaim disk safely",
           "description": "Shows the size of the journal, package caches and /tmp, then reclaims only those — including deleting journal entries older than 7 days. Never touches images, volumes or your data.",
           "tags": [
+            "linux",
             "disk",
             "maintenance"
           ],
@@ -419,6 +472,7 @@
           "name": "Who logged in",
           "description": "Current sessions, recent logins and failed attempts, from whichever of wtmp, btmp or the journal this host keeps.",
           "tags": [
+            "linux",
             "security",
             "diagnostics"
           ],
@@ -437,20 +491,22 @@
     {
       "id": "service-ops",
       "kind": "pack",
-      "name": "Service ops",
-      "description": "Inspect, restart and follow a service, on systemd, OpenRC or plain SysV alike.",
+      "name": "Service ops (Linux)",
+      "description": "Inspect, restart and follow a service, on systemd, OpenRC or plain SysV alike. Linux only.",
       "author": "voltius",
       "tags": [
+        "linux",
         "services",
         "ops"
       ],
-      "updated_at": "2026-08-04",
+      "updated_at": "2026-08-10",
       "snippets": [
         {
           "_eid": "s0",
           "name": "Inspect a service",
           "description": "Status plus the last log lines, from whichever service manager and log source this host has.",
           "tags": [
+            "linux",
             "services",
             "diagnostics"
           ],
@@ -469,6 +525,7 @@
           "name": "Restart a service",
           "description": "Shows the state, restarts, then shows it again so you can see whether it actually came back.",
           "tags": [
+            "linux",
             "services",
             "ops"
           ],
@@ -487,6 +544,7 @@
           "name": "Follow a service's logs",
           "description": "Live tail of a service's logs. Runs until you press Ctrl-C.",
           "tags": [
+            "linux",
             "services",
             "logs"
           ],
@@ -505,20 +563,22 @@
     {
       "id": "update-packages",
       "kind": "snippet",
-      "name": "Update all packages",
-      "description": "Prints what would be upgraded, then upgrades it. Works on apt, dnf, apk and pacman.",
+      "name": "Update all packages (Linux)",
+      "description": "Prints what would be upgraded, then upgrades it. Works on apt, dnf, apk and pacman — Linux only.",
       "author": "voltius",
       "tags": [
+        "linux",
         "maintenance",
         "packages"
       ],
-      "updated_at": "2026-08-04",
+      "updated_at": "2026-08-10",
       "snippets": [
         {
           "_eid": "s0",
-          "name": "Update all packages",
+          "name": "Update all packages (Linux)",
           "description": "The upgrade list comes first, so nothing changes before you have seen it.",
           "tags": [
+            "linux",
             "maintenance",
             "packages"
           ],
@@ -537,20 +597,24 @@
     {
       "id": "uv-install",
       "kind": "snippet",
-      "name": "Install uv",
-      "description": "Astral's standalone installer for uv, the fast Python package and project manager.",
+      "name": "Install uv (Linux/macOS)",
+      "description": "Astral's standalone installer for uv, the fast Python package and project manager. Linux and macOS — on Windows use the PowerShell installer from astral.sh.",
       "author": "voltius",
       "tags": [
+        "linux",
+        "macos",
         "install",
         "python"
       ],
-      "updated_at": "2026-08-04",
+      "updated_at": "2026-08-10",
       "snippets": [
         {
           "_eid": "s0",
-          "name": "Install uv",
+          "name": "Install uv (Linux/macOS)",
           "description": "No Python needed first — uv ships its own.",
           "tags": [
+            "linux",
+            "macos",
             "install",
             "python"
           ],
@@ -569,19 +633,21 @@
     {
       "id": "whats-listening",
       "kind": "snippet",
-      "name": "What is listening",
-      "description": "Every listening TCP and UDP socket with the owning process, sorted by port.",
+      "name": "What is listening (Linux)",
+      "description": "Every listening TCP and UDP socket with the owning process, sorted by port. Linux only — it uses ss or Linux netstat flags.",
       "author": "voltius",
       "tags": [
+        "linux",
         "network",
         "diagnostics"
       ],
-      "updated_at": "2026-08-04",
+      "updated_at": "2026-08-10",
       "snippets": [
         {
           "_eid": "s0",
-          "name": "What is listening",
+          "name": "What is listening (Linux)",
           "tags": [
+            "linux",
             "network",
             "diagnostics"
           ],
