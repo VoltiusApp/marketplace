@@ -14,13 +14,13 @@
     "theme": true
   },
   {
-    "id": "termius-dark",
-    "name": "Termius Dark",
+    "id": "emerald-night",
+    "name": "Emerald Night",
     "author": "Auhrus",
     "description": "Like Termius dark mode. Blue and green.",
-    "repo": "https://raw.githubusercontent.com/voltiusApp/marketplace/main/termius-dark",
+    "repo": "https://raw.githubusercontent.com/voltiusApp/marketplace/main/emerald-night",
     "version": "1.0.0",
-    "hash": "ff9f94e48ffb1d95b1e17298c636c15db483de8cad87158c6fac61a27c412539",
+    "hash": "366ada85743ef9b1ac2ddf877d79d7147dc21cb5ff1638eceb8778f2a6043b15",
     "tags": [
       "theme",
       "dark"

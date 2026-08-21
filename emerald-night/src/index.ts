@@ -6,8 +6,8 @@ export default function register(api: any): (() => void) | void {
   if (!api.isActive()) return;
 
   api.themes.register({
-    id: "termius-dark",
-	name: "Termius Dark",
+    id: "emerald-night",
+	name: "Emerald Night",
 	uiFontFamily: "'Inter Variable', system-ui, sans-serif",
 	uiFontSize: 15,
 	terminalFontFamily: "'JetBrains Mono', monospace",
@@ -18,14 +18,14 @@ export default function register(api: any): (() => void) | void {
 	  bgBase: "#1e2033",
 	  bgToolbar: "#010318",
 	  bgCard: "#121525",
-	  gCardHover: "#2d73e040",
+	  bgCardHover: "#2d73e040",
 	  bgCardAvatar: "#5fe2f746",
 	  bgInput: "#141D2B",
 	  bgInputHover: "#2A3F5A",
 	  bgElevated: "#1e2e42",
 	  bgModal: "#1a1d2f",
 	  border: "#1e2d42",
-	  orderHover: "#ffffff00",
+	  borderHover: "#ffffff00",
 	  textDim: "#7fa7b8",
 	  textMuted: "#8d91a5",
 	  textSecondary: "#8d91a5",
@@ -70,6 +70,6 @@ export default function register(api: any): (() => void) | void {
   });
 
   return () => {
-    api.themes.unregister("termius-dark");
+    api.themes.unregister("emerald-night");
   };
 }
