@@ -7,6 +7,9 @@
     "repo": "https://raw.githubusercontent.com/voltiusApp/marketplace/main/navy-green",
     "version": "1.0.0",
     "hash": "89df8d83fb7e6f569bf58ca8ff89c175039eee356910747036493eea161eb6a1",
+    "permissions": [
+      "themes"
+    ],
     "tags": [
       "theme",
       "dark"

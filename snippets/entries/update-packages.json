@@ -1,0 +1,26 @@
+{
+  "id": "update-packages",
+  "kind": "snippet",
+  "name": "Update all packages (Linux)",
+  "description": "Prints what would be upgraded, then upgrades it. Works on apt, dnf, apk and pacman — Linux only.",
+  "author": "voltius",
+  "tags": ["linux", "maintenance", "packages"],
+  "updated_at": "2026-08-10",
+  "snippets": [
+    {
+      "_eid": "s0",
+      "name": "Update all packages (Linux)",
+      "description": "The upgrade list comes first, so nothing changes before you have seen it.",
+      "tags": ["linux", "maintenance", "packages"],
+      "favorite": false,
+      "only_for_connection_tags": [],
+      "only_for_distros": [],
+      "steps": [
+        {
+          "kind": "script",
+          "content": "# The upgrade list is printed first so you can stop before it runs if something\n# on it surprises you.\necho \"== What would change ==\"\nif command -v apt-get >/dev/null 2>&1; then\n  if sudo apt-get update >/dev/null; then\n    OUT=$(apt list --upgradable 2>/dev/null | tail -n +2)\n    if [ -n \"$OUT\" ]; then echo \"$OUT\"; else echo \"up to date — nothing to upgrade\"; fi\n  else\n    echo \"(could not refresh the package index — skipping the preview)\"\n  fi\nelif command -v dnf >/dev/null 2>&1; then\n  dnf check-update || true\nelif command -v apk >/dev/null 2>&1; then\n  if sudo apk update >/dev/null; then\n    OUT=$(apk list --upgradable 2>/dev/null)\n    if [ -n \"$OUT\" ]; then echo \"$OUT\"; else echo \"up to date — nothing to upgrade\"; fi\n  else\n    echo \"(could not refresh the package index — skipping the preview)\"\n  fi\nelif command -v pacman >/dev/null 2>&1; then\n  if sudo pacman -Sy >/dev/null; then\n    OUT=$(pacman -Qu)\n    if [ -n \"$OUT\" ]; then echo \"$OUT\"; else echo \"up to date — nothing to upgrade\"; fi\n  else\n    echo \"(could not refresh the package index — skipping the preview)\"\n  fi\nelse\n  echo \"no supported package manager found\"\nfi\n\necho\necho \"== Upgrading ==\"\nif   command -v apt-get >/dev/null 2>&1; then sudo apt-get upgrade -y\nelif command -v dnf     >/dev/null 2>&1; then sudo dnf upgrade -y\nelif command -v apk     >/dev/null 2>&1; then sudo apk upgrade\nelif command -v pacman  >/dev/null 2>&1; then sudo pacman -Su --noconfirm\nfi\n\necho\necho \"== Done ==\"\n"
+        }
+      ]
+    }
+  ]
+}

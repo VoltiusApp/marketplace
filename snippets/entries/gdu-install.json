@@ -1,0 +1,26 @@
+{
+  "id": "gdu-install",
+  "kind": "snippet",
+  "name": "Install gdu (Linux)",
+  "description": "An interactive disk usage browser — walk the tree instead of reading a list. Linux only: the fallback downloads the Linux release binary.",
+  "author": "voltius",
+  "tags": ["linux", "install", "disk"],
+  "updated_at": "2026-08-10",
+  "snippets": [
+    {
+      "_eid": "s0",
+      "name": "Install gdu (Linux)",
+      "description": "Uses the distro package where there is one, otherwise the official release binary into ~/.local/bin.",
+      "tags": ["linux", "install", "disk"],
+      "favorite": false,
+      "only_for_connection_tags": [],
+      "only_for_distros": [],
+      "steps": [
+        {
+          "kind": "script",
+          "content": "# gdu is an interactive disk usage browser — the one to reach for when you want\n# to walk the tree instead of reading a list.\n# A prior run may have landed gdu in ~/.local/bin, which is not on PATH for a\n# non-interactive shell (e.g. `ssh host sh -s < script`) — put it there so the\n# already-installed check below actually finds it.\nexport PATH=\"$HOME/.local/bin:$PATH\"\n\nif command -v gdu >/dev/null 2>&1; then\n  echo \"gdu is already installed\"\nelse\n  # Only some distros package it; Debian/Ubuntu generally do not, so those fall\n  # through to the release binary below.\n  if   command -v apk    >/dev/null 2>&1; then sudo apk add --no-cache gdu\n  elif command -v pacman >/dev/null 2>&1; then sudo pacman -S --noconfirm gdu\n  elif command -v dnf    >/dev/null 2>&1; then sudo dnf install -y gdu\n  fi\nfi\n\nif ! command -v gdu >/dev/null 2>&1; then\n  case \"$(uname -m)\" in\n    x86_64|amd64)  ARCH=amd64 ;;\n    aarch64|arm64) ARCH=arm64 ;;\n    *) ARCH=\"\" ;;\n  esac\n  if [ -z \"$ARCH\" ]; then\n    echo \"unsupported architecture: $(uname -m) — no release binary to install\"\n  else\n    mkdir -p \"$HOME/.local/bin\"\n    curl -fsSL \"https://github.com/dundee/gdu/releases/latest/download/gdu_linux_${ARCH}.tgz\" | tar xz -C /tmp\n    mv \"/tmp/gdu_linux_${ARCH}\" \"$HOME/.local/bin/gdu\"\n    chmod +x \"$HOME/.local/bin/gdu\"\n    # The installer wrote to ~/.local/bin; this shell may not have it on PATH yet.\n    export PATH=\"$HOME/.local/bin:$PATH\"\n  fi\nfi\n\nif command -v gdu >/dev/null 2>&1; then\n  gdu --version | head -1\nfi\n"
+        }
+      ]
+    }
+  ]
+}

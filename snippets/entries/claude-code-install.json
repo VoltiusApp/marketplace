@@ -1,0 +1,41 @@
+{
+  "id": "claude-code-install",
+  "kind": "pack",
+  "name": "Install Claude Code",
+  "description": "Anthropic's official installer in both flavours: a POSIX sh one-liner for macOS, Linux and WSL, and a PowerShell one for native Windows. Pick the one that matches the shell you are running in.",
+  "author": "voltius",
+  "tags": ["linux", "macos", "windows", "install", "ai", "cli"],
+  "updated_at": "2026-08-10",
+  "snippets": [
+    {
+      "_eid": "s0",
+      "name": "Install Claude Code (macOS/Linux/WSL)",
+      "description": "POSIX sh. Installs to ~/.local/bin and self-updates in the background. Also the right one for a Git Bash or WSL shell on Windows.",
+      "tags": ["linux", "macos", "install", "ai"],
+      "favorite": false,
+      "only_for_connection_tags": [],
+      "only_for_distros": [],
+      "steps": [
+        {
+          "kind": "script",
+          "content": "curl -fsSL https://claude.ai/install.sh | bash\n\n# The installer adds ~/.local/bin to PATH in your shell profile; this session\n# may not have picked it up yet.\nexport PATH=\"$HOME/.local/bin:$PATH\"\nclaude --version"
+        }
+      ]
+    },
+    {
+      "_eid": "s1",
+      "name": "Install Claude Code (Windows PowerShell)",
+      "description": "PowerShell, for a local Windows shell. Not for cmd.exe, and not for a session on a Linux host — those want the macOS/Linux/WSL snippet.",
+      "tags": ["windows", "install", "ai"],
+      "favorite": false,
+      "only_for_connection_tags": [],
+      "only_for_distros": [],
+      "steps": [
+        {
+          "kind": "script",
+          "content": "# PowerShell, not POSIX sh: run this in PowerShell or Windows Terminal. In\n# cmd.exe, Git Bash or WSL it will not work — Git Bash and WSL want the\n# macOS/Linux/WSL snippet instead.\nirm https://claude.ai/install.ps1 | iex\n\n# The installer puts claude.exe under %USERPROFILE%\\.local\\bin and adds that\n# directory to your user PATH, but this session read PATH before that happened.\n$bin = Join-Path $env:USERPROFILE '.local\\bin'\nif (Test-Path $bin) { $env:Path = \"$bin;$env:Path\" }\n\nif (Get-Command claude -ErrorAction SilentlyContinue) {\n  claude --version\n} else {\n  Write-Warning \"Installed, but 'claude' is not on this session's PATH yet. Open a new PowerShell window and run: claude --version\"\n}"
+        }
+      ]
+    }
+  ]
+}

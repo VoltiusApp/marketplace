@@ -1,0 +1,667 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "claude-code-install",
+      "kind": "pack",
+      "name": "Install Claude Code",
+      "description": "Anthropic's official installer in both flavours: a POSIX sh one-liner for macOS, Linux and WSL, and a PowerShell one for native Windows. Pick the one that matches the shell you are running in.",
+      "author": "voltius",
+      "tags": [
+        "linux",
+        "macos",
+        "windows",
+        "install",
+        "ai",
+        "cli"
+      ],
+      "updated_at": "2026-08-10",
+      "snippets": [
+        {
+          "_eid": "s0",
+          "name": "Install Claude Code (macOS/Linux/WSL)",
+          "description": "POSIX sh. Installs to ~/.local/bin and self-updates in the background. Also the right one for a Git Bash or WSL shell on Windows.",
+          "tags": [
+            "linux",
+            "macos",
+            "install",
+            "ai"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "curl -fsSL https://claude.ai/install.sh | bash\n\n# The installer adds ~/.local/bin to PATH in your shell profile; this session\n# may not have picked it up yet.\nexport PATH=\"$HOME/.local/bin:$PATH\"\nclaude --version"
+            }
+          ]
+        },
+        {
+          "_eid": "s1",
+          "name": "Install Claude Code (Windows PowerShell)",
+          "description": "PowerShell, for a local Windows shell. Not for cmd.exe, and not for a session on a Linux host — those want the macOS/Linux/WSL snippet.",
+          "tags": [
+            "windows",
+            "install",
+            "ai"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "# PowerShell, not POSIX sh: run this in PowerShell or Windows Terminal. In\n# cmd.exe, Git Bash or WSL it will not work — Git Bash and WSL want the\n# macOS/Linux/WSL snippet instead.\nirm https://claude.ai/install.ps1 | iex\n\n# The installer puts claude.exe under %USERPROFILE%\\.local\\bin and adds that\n# directory to your user PATH, but this session read PATH before that happened.\n$bin = Join-Path $env:USERPROFILE '.local\\bin'\nif (Test-Path $bin) { $env:Path = \"$bin;$env:Path\" }\n\nif (Get-Command claude -ErrorAction SilentlyContinue) {\n  claude --version\n} else {\n  Write-Warning \"Installed, but 'claude' is not on this session's PATH yet. Open a new PowerShell window and run: claude --version\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "disk-hogs",
+      "kind": "snippet",
+      "name": "What is filling the disk (Linux)",
+      "description": "Filesystem usage, then the 20 largest directories under a path you choose. Linux only — it relies on GNU du and Linux df flags.",
+      "author": "voltius",
+      "tags": [
+        "linux",
+        "disk",
+        "diagnostics"
+      ],
+      "updated_at": "2026-08-10",
+      "snippets": [
+        {
+          "_eid": "s0",
+          "name": "What is filling the disk (Linux)",
+          "description": "Read-only — it reports, it never deletes.",
+          "tags": [
+            "linux",
+            "disk",
+            "diagnostics"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "ROOT=\"{{path}}\"\n\ndf -h -x tmpfs -x devtmpfs\necho\necho \"Largest directories under $ROOT:\"\nOUT=$(sudo du -h -x --max-depth=3 -- \"$ROOT\" | sort -rh | head -20)\nif [ -n \"$OUT\" ]; then\n  echo \"$OUT\"\nelse\n  echo \"Nothing found under $ROOT (path may not exist, or sudo failed).\"\nfi"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "docker-install",
+      "kind": "pack",
+      "name": "Install Docker (Linux)",
+      "description": "Docker's official convenience script, then the post-install step that lets your user run docker without sudo. Linux hosts only — get.docker.com does not serve macOS or Windows.",
+      "author": "voltius",
+      "tags": [
+        "linux",
+        "install",
+        "docker"
+      ],
+      "updated_at": "2026-08-10",
+      "snippets": [
+        {
+          "_eid": "s0",
+          "name": "Install Docker Engine",
+          "description": "Docker's convenience script. Docker documents it for development, not production — on a production host install from the apt/dnf repository instead.",
+          "tags": [
+            "linux",
+            "install",
+            "docker"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "curl -fsSL https://get.docker.com -o /tmp/get-docker.sh\n\n# Read it before running it — this is the whole point of downloading first.\nless /tmp/get-docker.sh\n\nsudo sh /tmp/get-docker.sh\nrm -f /tmp/get-docker.sh\nsudo docker version"
+            }
+          ]
+        },
+        {
+          "_eid": "s1",
+          "name": "Run docker without sudo",
+          "description": "Adds you to the docker group. Note this grants root-equivalent access to the host — that is inherent to the docker group, not to this snippet.",
+          "tags": [
+            "linux",
+            "docker"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "sudo groupadd -f docker\nsudo usermod -aG docker \"$USER\"\n\necho \"Added $USER to the docker group. Log out and back in for it to take effect,\"\necho \"or run: newgrp docker\""
+            }
+          ]
+        },
+        {
+          "_eid": "s2",
+          "name": "Verify Docker works",
+          "description": "Runs hello-world and prints the daemon's disk usage.",
+          "tags": [
+            "linux",
+            "docker"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "docker run --rm hello-world\ndocker system df"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "firewall-status",
+      "kind": "snippet",
+      "name": "Firewall status (Linux)",
+      "description": "What this host is actually filtering, via ufw, firewalld, nftables or iptables. Linux only.",
+      "author": "voltius",
+      "tags": [
+        "linux",
+        "network",
+        "security"
+      ],
+      "updated_at": "2026-08-10",
+      "snippets": [
+        {
+          "_eid": "s0",
+          "name": "Firewall status (Linux)",
+          "description": "Read-only: reports the active ruleset and changes nothing.",
+          "tags": [
+            "linux",
+            "network",
+            "security"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "# Read-only: reports the rules, changes nothing.\nif command -v ufw >/dev/null 2>&1; then\n  sudo ufw status verbose\nelif command -v firewall-cmd >/dev/null 2>&1; then\n  sudo firewall-cmd --list-all\nelif command -v nft >/dev/null 2>&1 && sudo nft list ruleset | grep -q .; then\n  sudo nft list ruleset\nelif command -v iptables >/dev/null 2>&1; then\n  sudo iptables -L -n -v\nelse\n  echo \"no firewall tool found (ufw, firewalld, nftables, iptables)\"\nfi\n"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gdu-install",
+      "kind": "snippet",
+      "name": "Install gdu (Linux)",
+      "description": "An interactive disk usage browser — walk the tree instead of reading a list. Linux only: the fallback downloads the Linux release binary.",
+      "author": "voltius",
+      "tags": [
+        "linux",
+        "install",
+        "disk"
+      ],
+      "updated_at": "2026-08-10",
+      "snippets": [
+        {
+          "_eid": "s0",
+          "name": "Install gdu (Linux)",
+          "description": "Uses the distro package where there is one, otherwise the official release binary into ~/.local/bin.",
+          "tags": [
+            "linux",
+            "install",
+            "disk"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "# gdu is an interactive disk usage browser — the one to reach for when you want\n# to walk the tree instead of reading a list.\n# A prior run may have landed gdu in ~/.local/bin, which is not on PATH for a\n# non-interactive shell (e.g. `ssh host sh -s < script`) — put it there so the\n# already-installed check below actually finds it.\nexport PATH=\"$HOME/.local/bin:$PATH\"\n\nif command -v gdu >/dev/null 2>&1; then\n  echo \"gdu is already installed\"\nelse\n  # Only some distros package it; Debian/Ubuntu generally do not, so those fall\n  # through to the release binary below.\n  if   command -v apk    >/dev/null 2>&1; then sudo apk add --no-cache gdu\n  elif command -v pacman >/dev/null 2>&1; then sudo pacman -S --noconfirm gdu\n  elif command -v dnf    >/dev/null 2>&1; then sudo dnf install -y gdu\n  fi\nfi\n\nif ! command -v gdu >/dev/null 2>&1; then\n  case \"$(uname -m)\" in\n    x86_64|amd64)  ARCH=amd64 ;;\n    aarch64|arm64) ARCH=arm64 ;;\n    *) ARCH=\"\" ;;\n  esac\n  if [ -z \"$ARCH\" ]; then\n    echo \"unsupported architecture: $(uname -m) — no release binary to install\"\n  else\n    mkdir -p \"$HOME/.local/bin\"\n    curl -fsSL \"https://github.com/dundee/gdu/releases/latest/download/gdu_linux_${ARCH}.tgz\" | tar xz -C /tmp\n    mv \"/tmp/gdu_linux_${ARCH}\" \"$HOME/.local/bin/gdu\"\n    chmod +x \"$HOME/.local/bin/gdu\"\n    # The installer wrote to ~/.local/bin; this shell may not have it on PATH yet.\n    export PATH=\"$HOME/.local/bin:$PATH\"\n  fi\nfi\n\nif command -v gdu >/dev/null 2>&1; then\n  gdu --version | head -1\nfi\n"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "node-nvm-pnpm",
+      "kind": "pack",
+      "name": "Install Node via nvm + pnpm (Linux/macOS)",
+      "description": "nvm, the current Node LTS, and pnpm enabled through Corepack. Linux and macOS — on Windows use nvm-windows, or run this inside WSL.",
+      "author": "voltius",
+      "tags": [
+        "linux",
+        "macos",
+        "install",
+        "node",
+        "javascript"
+      ],
+      "updated_at": "2026-08-10",
+      "snippets": [
+        {
+          "_eid": "s0",
+          "name": "Install nvm",
+          "description": "Pinned to a release tag rather than a branch, so the script you run is the one that was reviewed.",
+          "tags": [
+            "linux",
+            "macos",
+            "install",
+            "node"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.6/install.sh | bash\n\n# nvm is a shell function, so a new shell (or this) is needed before nvm works.\nexport NVM_DIR=\"$HOME/.nvm\"\n[ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"\nnvm --version"
+            }
+          ]
+        },
+        {
+          "_eid": "s1",
+          "name": "Install Node LTS",
+          "description": "Installs the current LTS and makes it the default for new shells.",
+          "tags": [
+            "linux",
+            "macos",
+            "node"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "export NVM_DIR=\"$HOME/.nvm\"\n[ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"\n\nnvm install --lts\nnvm alias default 'lts/*'\nnode --version\nnpm --version"
+            }
+          ]
+        },
+        {
+          "_eid": "s2",
+          "name": "Enable pnpm via Corepack",
+          "description": "Corepack ships with Node, so pnpm needs no separate installer.",
+          "tags": [
+            "linux",
+            "macos",
+            "node",
+            "pnpm"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "export NVM_DIR=\"$HOME/.nvm\"\n[ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"\n\nnpm install --global corepack@latest\ncorepack enable pnpm\npnpm --version"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "persistent-sessions",
+      "kind": "pack",
+      "name": "Persistent sessions with tmux or screen (Linux)",
+      "description": "Make your SSH sessions survive a dropped connection, check whether a host already does, and clean up the ones you left behind. The install step is Linux only; the report and kill steps also work on macOS.",
+      "author": "voltius",
+      "tags": [
+        "linux",
+        "tmux",
+        "screen",
+        "sessions"
+      ],
+      "updated_at": "2026-08-10",
+      "snippets": [
+        {
+          "_eid": "s0",
+          "name": "Install tmux",
+          "description": "Installs tmux with whichever package manager this host has. Clears the \"session will not survive disconnects\" warning.",
+          "tags": [
+            "linux",
+            "install",
+            "tmux"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "# Voltius wraps an SSH session in tmux (or screen) so it survives a dropped\n# connection. With neither installed the session dies with the link, which is\n# what the \"tmux/screen not found\" banner is telling you.\nif command -v tmux >/dev/null 2>&1; then\n  echo \"tmux is already installed\"\nelse\n  if   command -v apt-get >/dev/null 2>&1; then sudo apt-get update && sudo apt-get install -y tmux\n  elif command -v dnf     >/dev/null 2>&1; then sudo dnf install -y tmux\n  elif command -v apk     >/dev/null 2>&1; then sudo apk add --no-cache tmux\n  elif command -v pacman  >/dev/null 2>&1; then sudo pacman -S --noconfirm tmux\n  else echo \"no supported package manager found\"; fi\nfi\ntmux -V\n"
+            }
+          ]
+        },
+        {
+          "_eid": "s1",
+          "name": "Will this host keep my session alive?",
+          "description": "Reports which multiplexer is installed, lists the sessions already running, and says what that means for a dropped connection.",
+          "tags": [
+            "linux",
+            "tmux",
+            "screen",
+            "diagnostics"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "# Voltius prefers tmux, falls back to screen, and warns when neither exists.\nscreen_ls() {\n  if command -v screen >/dev/null 2>&1; then\n    SCR_OUT=$(screen -ls 2>/dev/null)\n    SCR_RC=$?\n    if [ \"$SCR_RC\" -eq 0 ] && [ -n \"$SCR_OUT\" ]; then\n      printf '%s\\n' \"$SCR_OUT\"\n    else\n      echo \"screen: no sessions\"\n    fi\n  fi\n}\n\nfor m in tmux screen; do\n  if command -v \"$m\" >/dev/null 2>&1; then\n    case \"$m\" in\n      tmux)   VER=$(tmux -V 2>&1 | head -1) ;;\n      screen) VER=$(screen -v 2>&1 | head -1) ;;\n    esac\n    if [ -n \"$VER\" ]; then\n      echo \"$m: $VER\"\n    else\n      echo \"$m: installed (version not reported)\"\n    fi\n  else\n    echo \"$m: not installed\"\n  fi\ndone\n\necho\necho \"== Sessions on this host ==\"\ncommand -v tmux >/dev/null 2>&1 && { tmux ls 2>/dev/null || echo \"tmux: no sessions\"; }\nscreen_ls\n\necho\nif command -v tmux >/dev/null 2>&1; then\n  echo \"=> Your session survives a dropped connection (tmux).\"\nelif command -v screen >/dev/null 2>&1; then\n  echo \"=> Your session survives a dropped connection (screen).\"\nelse\n  echo \"=> Nothing persistent here: a dropped connection kills the session.\"\n  echo \"   Install tmux to fix that.\"\nfi\n"
+            }
+          ]
+        },
+        {
+          "_eid": "s2",
+          "name": "Kill a stale session",
+          "description": "Lists your sessions, kills the one you name, then lists them again. A name that does not exist kills nothing.",
+          "tags": [
+            "linux",
+            "tmux",
+            "screen",
+            "maintenance"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "# The list is printed before anything is killed, on purpose — kill the wrong\n# session and you lose whatever was running inside it. Both kills below only\n# fire on an exact name match: tmux and screen both do prefix matching by\n# default, so an unanchored match could kill session \"foobar\" when you asked\n# to kill \"foo\".\nTARGET=\"{{session}}\"\n\nscreen_ls() {\n  if command -v screen >/dev/null 2>&1; then\n    SCR_OUT=$(screen -ls 2>/dev/null)\n    SCR_RC=$?\n    if [ \"$SCR_RC\" -eq 0 ] && [ -n \"$SCR_OUT\" ]; then\n      printf '%s\\n' \"$SCR_OUT\"\n    else\n      echo \"screen: no sessions\"\n    fi\n  fi\n}\n\n# Exact-match check for screen: screen -S/-X quit prefix-matches like tmux\n# does, and unlike tmux there is no \"=name\" anchor to force an exact match,\n# so we parse `screen -ls` ourselves and only proceed on an exact hit.\nscreen_has_exact() {\n  command -v screen >/dev/null 2>&1 || return 1\n  SCR_OUT=$(screen -ls 2>/dev/null)\n  SCR_RC=$?\n  [ \"$SCR_RC\" -eq 0 ] && [ -n \"$SCR_OUT\" ] || return 1\n  printf '%s\\n' \"$SCR_OUT\" | awk -F'\\t' -v t=\"$1\" '\n    NF >= 2 { id = $2; sub(/^[0-9]+\\./, \"\", id); if (id == t) { found = 1; exit } }\n    END { exit !found }\n  '\n}\n\necho \"== Sessions before ==\"\ncommand -v tmux >/dev/null 2>&1 && { tmux ls 2>/dev/null || echo \"tmux: no sessions\"; }\nscreen_ls\n\necho\necho \"== Killing '$TARGET' ==\"\nif tmux kill-session -t \"=$TARGET\" 2>/dev/null; then\n  echo \"killed tmux session $TARGET\"\nelif screen_has_exact \"$TARGET\" && screen -S \"$TARGET\" -X quit 2>/dev/null; then\n  echo \"killed screen session $TARGET\"\nelse\n  echo \"no session named '$TARGET' — nothing killed\"\nfi\n\necho\necho \"== Sessions after ==\"\ncommand -v tmux >/dev/null 2>&1 && { tmux ls 2>/dev/null || echo \"tmux: no sessions\"; }\nscreen_ls\n"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "port-in-use",
+      "kind": "snippet",
+      "name": "Is port {{port}} in use? (Linux/macOS)",
+      "description": "Shows what is listening on a port, and the process that owns it. Prompts for the port when you run it. Linux and macOS — macOS takes the lsof branch.",
+      "author": "voltius",
+      "tags": [
+        "linux",
+        "macos",
+        "network",
+        "diagnostics"
+      ],
+      "updated_at": "2026-08-10",
+      "snippets": [
+        {
+          "_eid": "s0",
+          "name": "Is port {{port}} in use? (Linux/macOS)",
+          "description": "Falls back from ss to lsof to netstat, so it works on a minimal host.",
+          "tags": [
+            "linux",
+            "macos",
+            "network",
+            "diagnostics"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "PORT=\"{{port:number}}\"\n\n# $PORT is embedded in a regex (netstat branch) and in tool-specific argument\n# syntax (ss/lsof branches), so a non-numeric value is not just wrong, it can\n# match unrelated ports or make the tool error out. Require plain digits before\n# running any of the three detection branches.\ncase \"$PORT\" in\n  ''|*[!0-9]*)\n    echo \"Not a valid port: '$PORT' (expected a number)\"\n    PORT_VALID=0\n    ;;\n  *)\n    PORT_VALID=1\n    ;;\nesac\n\nif [ \"$PORT_VALID\" = 1 ]; then\n  if command -v ss >/dev/null 2>&1; then\n    OUT=$(ss -tulpnH \"sport = :$PORT\" 2>/dev/null)\n  elif command -v lsof >/dev/null 2>&1; then\n    OUT=$(lsof -nP -iTCP:\"$PORT\" -sTCP:LISTEN 2>/dev/null; lsof -nP -iUDP:\"$PORT\" 2>/dev/null)\n  else\n    OUT=$(netstat -tulpn 2>/dev/null | grep -E \"[:.]$PORT[[:space:]]\")\n  fi\n\n  if [ -n \"$OUT\" ]; then\n    echo \"Port $PORT is IN USE:\"\n    echo \"$OUT\"\n  else\n    echo \"Port $PORT is free (nothing listening).\"\n    echo \"Note: without sudo you may not see sockets owned by other users.\"\n  fi\nfi"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "server-triage",
+      "kind": "pack",
+      "name": "Server triage (Linux)",
+      "description": "Why did it die, what is eating the disk that you can safely reclaim, and who has been logging in. Linux only.",
+      "author": "voltius",
+      "tags": [
+        "linux",
+        "diagnostics",
+        "triage"
+      ],
+      "updated_at": "2026-08-10",
+      "snippets": [
+        {
+          "_eid": "s0",
+          "name": "Why did it die",
+          "description": "Recent boots, OOM kills, failed services and the tail of the kernel log.",
+          "tags": [
+            "linux",
+            "diagnostics"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "# The three things that explain \"it was working yesterday\": a reboot, an OOM\n# kill, or a service that gave up.\necho \"== Uptime and recent boots ==\"\nuptime\ncommand -v last >/dev/null 2>&1 && last reboot 2>/dev/null | head -5\n\necho\necho \"== OOM kills ==\"\nif command -v journalctl >/dev/null 2>&1; then\n  RAW=$(journalctl -k --no-pager 2>/dev/null)\n  RC=$?\n  if [ $RC -ne 0 ] && [ -z \"$RAW\" ]; then\n    echo \"kernel log not readable (need root or the adm/systemd-journal group)\"\n  else\n    OUT=$(echo \"$RAW\" | grep -iE \"out of memory|oom-kill\" | tail -20)\n    if [ -n \"$OUT\" ]; then echo \"$OUT\"; else echo \"none found — no OOM kill recorded\"; fi\n  fi\nelif [ -r /var/log/kern.log ]; then\n  OUT=$(grep -iE \"out of memory|oom-kill\" /var/log/kern.log 2>/dev/null | tail -20)\n  if [ -n \"$OUT\" ]; then echo \"$OUT\"; else echo \"none found — no OOM kill recorded\"; fi\nelse\n  RAW=$(dmesg 2>/dev/null)\n  RC=$?\n  if [ $RC -ne 0 ] && [ -z \"$RAW\" ]; then\n    echo \"dmesg not readable without root\"\n  else\n    OUT=$(echo \"$RAW\" | grep -iE \"out of memory|oom-kill\" | tail -20)\n    if [ -n \"$OUT\" ]; then echo \"$OUT\"; else echo \"none found — no OOM kill recorded\"; fi\n  fi\nfi\n\necho\necho \"== Failed services ==\"\nif command -v systemctl >/dev/null 2>&1; then\n  systemctl --failed --no-pager\nelif command -v rc-status >/dev/null 2>&1; then\n  rc-status --crashed 2>/dev/null || rc-status 2>/dev/null\nelse\n  echo \"no service manager found\"\nfi\n\necho\necho \"== Last 20 kernel messages ==\"\nOUT=$(dmesg 2>/dev/null | tail -20)\nif [ -n \"$OUT\" ]; then\n  echo \"$OUT\"\nelse\n  echo \"dmesg not readable without root\"\nfi\n"
+            }
+          ]
+        },
+        {
+          "_eid": "s1",
+          "name": "Reclaim disk safely",
+          "description": "Shows the size of the journal, package caches and /tmp, then reclaims only those — including deleting journal entries older than 7 days. Never touches images, volumes or your data.",
+          "tags": [
+            "linux",
+            "disk",
+            "maintenance"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "# Only caches and rotated logs are touched. Images, volumes and your data are\n# never in scope here — that is what makes this safe to run on a live box.\n# The journal vacuum below permanently deletes entries older than 7 days.\necho \"== Disk before ==\"\ndf -h / | tail -1\n\necho\necho \"== What can be reclaimed ==\"\n[ -d /var/log/journal ] && sudo du -sh /var/log/journal\n[ -d /var/cache/apt ]   && sudo du -sh /var/cache/apt\n[ -d /var/cache/dnf ]   && sudo du -sh /var/cache/dnf\n[ -d /var/cache/apk ]   && sudo du -sh /var/cache/apk\n\necho\n# Shown for context only — files here can be in active use, so this script\n# never clears /tmp automatically.\necho \"== /tmp (shown only — not cleared automatically) ==\"\nsudo du -sh /tmp\n\necho\necho \"== Reclaiming ==\"\nif command -v journalctl >/dev/null 2>&1; then\n  echo \"Deleting journal entries older than 7 days — this permanently removes that history and cannot be undone.\"\n  sudo journalctl --vacuum-time=7d\nfi\ncommand -v apt-get    >/dev/null 2>&1 && sudo apt-get clean && echo \"apt cache cleaned\"\ncommand -v dnf        >/dev/null 2>&1 && sudo dnf clean all\ncommand -v apk        >/dev/null 2>&1 && sudo rm -rf /var/cache/apk/* && echo \"apk cache cleaned\"\n\necho\necho \"== Disk after ==\"\ndf -h / | tail -1\n"
+            }
+          ]
+        },
+        {
+          "_eid": "s2",
+          "name": "Who logged in",
+          "description": "Current sessions, recent logins and failed attempts, from whichever of wtmp, btmp or the journal this host keeps.",
+          "tags": [
+            "linux",
+            "security",
+            "diagnostics"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "# Who has had access recently, and who tried and failed — the first two\n# questions after a lockout scare or a suspected intrusion.\necho \"== Connected right now ==\"\nOUT=$(who 2>/dev/null || w 2>/dev/null)\nif [ -n \"$OUT\" ]; then\n  echo \"$OUT\"\nelse\n  echo \"no active sessions (or no utmp on this host)\"\nfi\n\necho\necho \"== Last 15 logins ==\"\nOUT=$(last -n 15 2>/dev/null | head -16)\nif [ -n \"$OUT\" ]; then\n  echo \"$OUT\"\nelse\n  echo \"no wtmp on this host\"\nfi\n\necho\necho \"== Failed attempts ==\"\nif command -v lastb >/dev/null 2>&1; then\n  OUT=$(sudo lastb -n 15 | head -16)\n  if [ -n \"$OUT\" ]; then\n    echo \"$OUT\"\n  else\n    echo \"no btmp on this host\"\n  fi\nelif command -v journalctl >/dev/null 2>&1; then\n  OUT=$(sudo journalctl -u ssh -u sshd --no-pager | grep -i \"failed password\" | tail -15)\n  if [ -n \"$OUT\" ]; then\n    echo \"$OUT\"\n  else\n    echo \"no failed-password entries found\"\n  fi\nelif [ -r /var/log/auth.log ]; then\n  OUT=$(sudo grep -i \"failed password\" /var/log/auth.log | tail -15)\n  if [ -n \"$OUT\" ]; then\n    echo \"$OUT\"\n  else\n    echo \"no failed-password entries found\"\n  fi\nelse\n  echo \"no auth log available\"\nfi\n"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "service-ops",
+      "kind": "pack",
+      "name": "Service ops (Linux)",
+      "description": "Inspect, restart and follow a service, on systemd, OpenRC or plain SysV alike. Linux only.",
+      "author": "voltius",
+      "tags": [
+        "linux",
+        "services",
+        "ops"
+      ],
+      "updated_at": "2026-08-10",
+      "snippets": [
+        {
+          "_eid": "s0",
+          "name": "Inspect a service",
+          "description": "Status plus the last log lines, from whichever service manager and log source this host has.",
+          "tags": [
+            "linux",
+            "services",
+            "diagnostics"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "SVC=\"{{service}}\"\nLINES=\"{{lines:number:20}}\"\n\nif command -v systemctl >/dev/null 2>&1; then\n  systemctl status \"$SVC\" --no-pager\n  echo\n  echo \"== last $LINES log lines ==\"\n  LOG=$(journalctl -u \"$SVC\" -n \"$LINES\" --no-pager 2>&1)\n  if [ -n \"$LOG\" ]; then echo \"$LOG\"; else echo \"no journal entries for $SVC\"; fi\nelif command -v rc-service >/dev/null 2>&1; then\n  rc-service \"$SVC\" status\n  echo\n  echo \"== last $LINES log lines ==\"\n  tail -n \"$LINES\" \"/var/log/$SVC.log\" 2>/dev/null || echo \"no /var/log/$SVC.log on this host\"\nelif command -v service >/dev/null 2>&1; then\n  service \"$SVC\" status\n  echo\n  echo \"== last $LINES log lines ==\"\n  tail -n \"$LINES\" \"/var/log/$SVC.log\" 2>/dev/null || echo \"no /var/log/$SVC.log on this host\"\nelse\n  echo \"no service manager found (systemctl, rc-service, service)\"\nfi\n"
+            }
+          ]
+        },
+        {
+          "_eid": "s1",
+          "name": "Restart a service",
+          "description": "Shows the state, restarts, then shows it again so you can see whether it actually came back.",
+          "tags": [
+            "linux",
+            "services",
+            "ops"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "SVC=\"{{service}}\"\n\n# State before and after, either side of the restart — a restart you cannot see\n# the result of is not worth running.\necho \"== Before ==\"\nif command -v systemctl >/dev/null 2>&1; then\n  STATE=$(systemctl is-active \"$SVC\" 2>&1)\nelif command -v rc-service >/dev/null 2>&1; then\n  STATE=$(rc-service \"$SVC\" status 2>&1)\nelif command -v service >/dev/null 2>&1; then\n  STATE=$(service \"$SVC\" status 2>&1)\nelse\n  STATE=\"\"\nfi\nif [ -n \"$STATE\" ]; then echo \"$STATE\"; else echo \"unknown\"; fi\n\necho\necho \"== Restarting $SVC ==\"\nif   command -v systemctl  >/dev/null 2>&1; then sudo systemctl restart \"$SVC\"\nelif command -v rc-service >/dev/null 2>&1; then sudo rc-service \"$SVC\" restart\nelif command -v service    >/dev/null 2>&1; then sudo service \"$SVC\" restart\nelse echo \"no service manager found\"; fi\n\necho\necho \"== After ==\"\nif command -v systemctl >/dev/null 2>&1; then\n  systemctl status \"$SVC\" --no-pager 2>/dev/null | head -12\nelif command -v rc-service >/dev/null 2>&1; then\n  STATE=$(rc-service \"$SVC\" status 2>&1)\n  if [ -n \"$STATE\" ]; then echo \"$STATE\"; else echo \"unknown\"; fi\nelif command -v service >/dev/null 2>&1; then\n  STATE=$(service \"$SVC\" status 2>&1)\n  if [ -n \"$STATE\" ]; then echo \"$STATE\"; else echo \"unknown\"; fi\nelse\n  echo \"unknown\"\nfi\n"
+            }
+          ]
+        },
+        {
+          "_eid": "s2",
+          "name": "Follow a service's logs",
+          "description": "Live tail of a service's logs. Runs until you press Ctrl-C.",
+          "tags": [
+            "linux",
+            "services",
+            "logs"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "SVC=\"{{service}}\"\n\n# Runs until you stop it: press Ctrl-C in the terminal to stop following.\nif command -v journalctl >/dev/null 2>&1; then\n  journalctl -u \"$SVC\" -f -n 50\nelif [ -r \"/var/log/$SVC.log\" ]; then\n  tail -f -n 50 \"/var/log/$SVC.log\"\nelif [ -r /var/log/messages ]; then\n  tail -f -n 50 /var/log/messages | grep -Fi \"$SVC\"\nelse\n  echo \"no log source found for $SVC (tried journalctl, /var/log/$SVC.log, /var/log/messages)\"\nfi\n"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "update-packages",
+      "kind": "snippet",
+      "name": "Update all packages (Linux)",
+      "description": "Prints what would be upgraded, then upgrades it. Works on apt, dnf, apk and pacman — Linux only.",
+      "author": "voltius",
+      "tags": [
+        "linux",
+        "maintenance",
+        "packages"
+      ],
+      "updated_at": "2026-08-10",
+      "snippets": [
+        {
+          "_eid": "s0",
+          "name": "Update all packages (Linux)",
+          "description": "The upgrade list comes first, so nothing changes before you have seen it.",
+          "tags": [
+            "linux",
+            "maintenance",
+            "packages"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "# The upgrade list is printed first so you can stop before it runs if something\n# on it surprises you.\necho \"== What would change ==\"\nif command -v apt-get >/dev/null 2>&1; then\n  if sudo apt-get update >/dev/null; then\n    OUT=$(apt list --upgradable 2>/dev/null | tail -n +2)\n    if [ -n \"$OUT\" ]; then echo \"$OUT\"; else echo \"up to date — nothing to upgrade\"; fi\n  else\n    echo \"(could not refresh the package index — skipping the preview)\"\n  fi\nelif command -v dnf >/dev/null 2>&1; then\n  dnf check-update || true\nelif command -v apk >/dev/null 2>&1; then\n  if sudo apk update >/dev/null; then\n    OUT=$(apk list --upgradable 2>/dev/null)\n    if [ -n \"$OUT\" ]; then echo \"$OUT\"; else echo \"up to date — nothing to upgrade\"; fi\n  else\n    echo \"(could not refresh the package index — skipping the preview)\"\n  fi\nelif command -v pacman >/dev/null 2>&1; then\n  if sudo pacman -Sy >/dev/null; then\n    OUT=$(pacman -Qu)\n    if [ -n \"$OUT\" ]; then echo \"$OUT\"; else echo \"up to date — nothing to upgrade\"; fi\n  else\n    echo \"(could not refresh the package index — skipping the preview)\"\n  fi\nelse\n  echo \"no supported package manager found\"\nfi\n\necho\necho \"== Upgrading ==\"\nif   command -v apt-get >/dev/null 2>&1; then sudo apt-get upgrade -y\nelif command -v dnf     >/dev/null 2>&1; then sudo dnf upgrade -y\nelif command -v apk     >/dev/null 2>&1; then sudo apk upgrade\nelif command -v pacman  >/dev/null 2>&1; then sudo pacman -Su --noconfirm\nfi\n\necho\necho \"== Done ==\"\n"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "uv-install",
+      "kind": "snippet",
+      "name": "Install uv (Linux/macOS)",
+      "description": "Astral's standalone installer for uv, the fast Python package and project manager. Linux and macOS — on Windows use the PowerShell installer from astral.sh.",
+      "author": "voltius",
+      "tags": [
+        "linux",
+        "macos",
+        "install",
+        "python"
+      ],
+      "updated_at": "2026-08-10",
+      "snippets": [
+        {
+          "_eid": "s0",
+          "name": "Install uv (Linux/macOS)",
+          "description": "No Python needed first — uv ships its own.",
+          "tags": [
+            "linux",
+            "macos",
+            "install",
+            "python"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "curl -LsSf https://astral.sh/uv/install.sh | sh\n\n# The installer writes to ~/.local/bin and updates your shell profile.\nexport PATH=\"$HOME/.local/bin:$PATH\"\nuv --version"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "whats-listening",
+      "kind": "snippet",
+      "name": "What is listening (Linux)",
+      "description": "Every listening TCP and UDP socket with the owning process, sorted by port. Linux only — it uses ss or Linux netstat flags.",
+      "author": "voltius",
+      "tags": [
+        "linux",
+        "network",
+        "diagnostics"
+      ],
+      "updated_at": "2026-08-10",
+      "snippets": [
+        {
+          "_eid": "s0",
+          "name": "What is listening (Linux)",
+          "tags": [
+            "linux",
+            "network",
+            "diagnostics"
+          ],
+          "favorite": false,
+          "only_for_connection_tags": [],
+          "only_for_distros": [],
+          "steps": [
+            {
+              "kind": "script",
+              "content": "# sudo shows the process for sockets owned by other users; without it those\n# rows still appear, just without a name.\nif command -v ss >/dev/null 2>&1; then\n  sudo ss -tulpn 2>/dev/null || ss -tulpn\nelse\n  sudo netstat -tulpn 2>/dev/null || netstat -tulpn\nfi"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

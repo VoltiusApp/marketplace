@@ -1,15 +1,18 @@
 name: Verify plugin hashes
 
-# Enforces that every plugins.json entry carries the correct SHA-256 of its index.js, so the
-# Voltius client's install-time integrity check can bind the reviewed bundle to the executed one.
-# Runs on PRs (against the PR's own proposed bytes) and on push to main (closes the mutable
-# raw/main hole for in-repo plugins: their bundle cannot change without a matching hash update).
+# Enforces that every plugins.json entry carries the correct SHA-256 of its index.js and the
+# permissions its manifest.json declares, so the Voltius client's install-time integrity check can
+# bind the reviewed bundle to the executed one and a submission's requested capabilities are visible
+# in the diff. Runs on PRs (against the PR's own proposed bytes) and on push to main (closes the
+# mutable raw/main hole for in-repo plugins: neither their bundle nor their declared permissions can
+# change without a matching plugins.json update).
 
 on:
   pull_request:
     paths:
       - plugins.json
       - "**/index.js"
+      - "**/manifest.json"
       - scripts/stamp-hashes.mjs
   push:
     branches: [main]

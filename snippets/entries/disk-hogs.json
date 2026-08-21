@@ -1,0 +1,26 @@
+{
+  "id": "disk-hogs",
+  "kind": "snippet",
+  "name": "What is filling the disk (Linux)",
+  "description": "Filesystem usage, then the 20 largest directories under a path you choose. Linux only — it relies on GNU du and Linux df flags.",
+  "author": "voltius",
+  "tags": ["linux", "disk", "diagnostics"],
+  "updated_at": "2026-08-10",
+  "snippets": [
+    {
+      "_eid": "s0",
+      "name": "What is filling the disk (Linux)",
+      "description": "Read-only — it reports, it never deletes.",
+      "tags": ["linux", "disk", "diagnostics"],
+      "favorite": false,
+      "only_for_connection_tags": [],
+      "only_for_distros": [],
+      "steps": [
+        {
+          "kind": "script",
+          "content": "ROOT=\"{{path}}\"\n\ndf -h -x tmpfs -x devtmpfs\necho\necho \"Largest directories under $ROOT:\"\nOUT=$(sudo du -h -x --max-depth=3 -- \"$ROOT\" | sort -rh | head -20)\nif [ -n \"$OUT\" ]; then\n  echo \"$OUT\"\nelse\n  echo \"Nothing found under $ROOT (path may not exist, or sudo failed).\"\nfi"
+        }
+      ]
+    }
+  ]
+}

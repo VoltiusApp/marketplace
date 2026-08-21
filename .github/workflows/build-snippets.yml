@@ -1,0 +1,25 @@
+name: Verify snippet catalogue
+
+# Entries are authored one file per submission so concurrent PRs don't conflict;
+# snippets.json is the single built file the Voltius client fetches. This checks
+# every entry validates and that the built file matches the entries, so a merged
+# PR can never leave the catalogue stale or malformed.
+
+on:
+  pull_request:
+    paths:
+      - snippets.json
+      - "snippets/entries/**"
+      - scripts/build-snippets.mjs
+  push:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/build-snippets.mjs --check
