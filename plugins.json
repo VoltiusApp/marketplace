@@ -21,10 +21,159 @@
     "repo": "https://raw.githubusercontent.com/voltiusApp/marketplace/main/emerald-night",
     "version": "1.0.0",
     "hash": "366ada85743ef9b1ac2ddf877d79d7147dc21cb5ff1638eceb8778f2a6043b15",
+    "permissions": [
+      "themes"
+    ],
     "tags": [
       "theme",
       "dark"
     ],
     "theme": true
+  },
+  {
+    "id": "plugin-ssh-config",
+    "name": "SSH Config Sync",
+    "author": "Voltius",
+    "description": "Auto-syncs hosts from ~/.ssh/config. Connections are tagged 'ssh-config'.",
+    "repo": "https://github.com/VoltiusApp/voltius/releases/download/plugin-ssh-config-v1.0.0",
+    "version": "1.0.0",
+    "hash": "3041d7fd54eafc96a4328b885d585e1c072d088ded730b11d0df670d429feff6",
+    "permissions": [
+      "connections:read",
+      "connections:write",
+      "keys:read",
+      "keys:write",
+      "identities:read",
+      "identities:write",
+      "fs",
+      "settings-page",
+      "notifications",
+      "storage"
+    ],
+    "minAppVersion": "0.14.0",
+    "tags": [
+      "sync",
+      "ssh"
+    ],
+    "theme": false
+  },
+  {
+    "id": "plugin-gist-sync",
+    "name": "GitHub Gist Sync",
+    "author": "Voltius",
+    "description": "Sync your data across devices via encrypted GitHub Gist — no Voltius account required.",
+    "repo": "https://github.com/VoltiusApp/voltius/releases/download/plugin-gist-sync-v1.1.1",
+    "version": "1.1.1",
+    "hash": "9782b3933a8f04a53d70e4a39de4e0b28ba16838627cb01e66a5451211a0ab5a",
+    "permissions": [
+      "vault:read",
+      "vault:write",
+      "storage",
+      "http",
+      "crypto:derive",
+      "ui",
+      "sync:read",
+      "sync:write",
+      "notifications",
+      "settings-page"
+    ],
+    "minAppVersion": "0.15.0",
+    "tags": [
+      "sync",
+      "github"
+    ],
+    "theme": false
+  },
+  {
+    "id": "plugin-monitoring",
+    "name": "System Metrics",
+    "author": "Voltius",
+    "description": "Real-time CPU, RAM, network, and disk metrics for local and SSH sessions.",
+    "repo": "https://github.com/VoltiusApp/voltius/releases/download/plugin-monitoring-v1.1.1",
+    "version": "1.1.1",
+    "hash": "a870935ece503b395b94f70bcf9919e792ab9438cd95b6cc256014beeb81167a",
+    "permissions": [
+      "metrics:read",
+      "sessions:read",
+      "right-panel",
+      "ui"
+    ],
+    "minAppVersion": "0.18.0",
+    "tags": [
+      "monitoring",
+      "metrics"
+    ],
+    "theme": false,
+    "cssHash": "819fd8c33c897e60ec02a3c69e9ea83551f18ddc48f0122b764221870ffaafe8"
+  },
+  {
+    "id": "plugin-docker",
+    "name": "Docker",
+    "author": "Voltius",
+    "description": "Manage Docker containers, images, volumes, and networks for local and SSH sessions.",
+    "repo": "https://github.com/VoltiusApp/voltius/releases/download/plugin-docker-v1.2.1",
+    "version": "1.2.1",
+    "hash": "cda51388a4dbf3851ad09a3882e7e30a5ae7cc0e3ccfebcab97da3e5df6d55c9",
+    "permissions": [
+      "sessions:read",
+      "right-panel",
+      "storage",
+      "notifications",
+      "docker:read",
+      "docker:manage",
+      "ui"
+    ],
+    "minAppVersion": "0.18.0",
+    "tags": [
+      "docker",
+      "containers"
+    ],
+    "theme": false
+  },
+  {
+    "id": "plugin-process-manager",
+    "name": "Process Manager",
+    "author": "Voltius",
+    "description": "Monitor and manage running processes for local and SSH sessions.",
+    "repo": "https://github.com/VoltiusApp/voltius/releases/download/plugin-process-manager-v1.1.1",
+    "version": "1.1.1",
+    "hash": "18a5f14e09197bf5c848e576d8e7a17824810d3d61c36c70ff5e75896bf79b3c",
+    "permissions": [
+      "processes:read",
+      "processes:manage",
+      "sessions:read",
+      "right-panel",
+      "ui"
+    ],
+    "minAppVersion": "0.18.0",
+    "tags": [
+      "system",
+      "processes"
+    ],
+    "theme": false
+  },
+  {
+    "id": "plugin-proxmox",
+    "name": "Proxmox LXC",
+    "author": "Voltius",
+    "description": "Manage Proxmox VE LXC containers and snapshots over SSH.",
+    "repo": "https://github.com/VoltiusApp/voltius/releases/download/plugin-proxmox-v1.1.1",
+    "version": "1.1.1",
+    "hash": "0e95c68305ea85e672ac943fb07d7b27d94762af6dad3c1bafbcf2eca9bdb7bc",
+    "permissions": [
+      "sessions:read",
+      "right-panel",
+      "notifications",
+      "proxmox:read",
+      "proxmox:manage",
+      "connections:read",
+      "ui"
+    ],
+    "minAppVersion": "0.18.0",
+    "tags": [
+      "proxmox",
+      "virtualization"
+    ],
+    "theme": false
   }
 ]
