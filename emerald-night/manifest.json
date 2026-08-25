@@ -2,7 +2,7 @@
   "id": "emerald-night",
   "name": "Emerald Night",
   "version": "1.0.0",
-  "description": "Like Termius dark mode. Blue and green.",
+  "description": "Dark theme in deep blue and emerald green.",
   "permissions": ["themes"],
   "defaultEnabled": false
 }
