@@ -3,6 +3,5 @@
   "name": "Navy Green",
   "version": "1.0.0",
   "description": "Deep navy dark theme with green accents.",
-  "permissions": ["themes"],
-  "defaultEnabled": false
+  "permissions": ["themes"]
 }
