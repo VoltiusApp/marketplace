@@ -3,6 +3,5 @@
   "name": "Emerald Night",
   "version": "1.0.0",
   "description": "Dark theme in deep blue and emerald green.",
-  "permissions": ["themes"],
-  "defaultEnabled": false
+  "permissions": ["themes"]
 }
