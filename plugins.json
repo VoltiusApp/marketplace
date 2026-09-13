@@ -186,7 +186,7 @@
     "description": "Sync your encrypted vault via your own Cloudflare Worker + R2 \u2014 bring your own cloud, no Voltius account required. In-app Worker deploy from Settings.",
     "repo": "https://github.com/mrchatam/voltius-plugin-cloudflare-sync/releases/download/plugin-cloudflare-sync-v0.2.0",
     "version": "0.2.0",
-    "hash": "990659ca5197d59dddc69e3f681d3be9211c373ea7f72b3f71281101f9996658",
+    "hash": "cc9240dc0e2c31f38768b07838f24e1529f30f8df5adc2e2923c7b7f257402d0",
     "permissions": [
       "vault:read",
       "vault:write",
