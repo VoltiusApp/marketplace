@@ -184,8 +184,8 @@
     "name": "Cloudflare Sync",
     "author": "mrchatam",
     "description": "BYO Cloudflare Worker + R2 encrypted vault sync \u2014 own your store, no GitHub PAT, deploy from Settings. Prefer over Gist when you want self-hosted object storage with the same on-device E2EE.",
-    "repo": "https://github.com/mrchatam/voltius-plugin-cloudflare-sync/releases/download/plugin-cloudflare-sync-v0.2.1",
-    "version": "0.2.1",
+    "repo": "https://github.com/mrchatam/voltius-plugin-cloudflare-sync/releases/download/plugin-cloudflare-sync-v0.2.2",
+    "version": "0.2.2",
     "hash": "d57dbd82ea0fdc6324601748aac5d1a196bcef0997afb83b73b1f70c64c2ad62",
     "permissions": [
       "vault:read",
