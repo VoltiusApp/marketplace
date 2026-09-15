@@ -38,7 +38,6 @@ let _error: string | null = null;
 let _blobSizeBytes: number | null = null;
 let _configured = false;
 let _pollInterval: ReturnType<typeof setInterval> | null = null;
-let _consecutiveFailures = 0;
 let _failureBannerId: { dismiss(): void } | null = null;
 /** deviceId → last known pushedAt (change detection for pull) */
 let _lastSeenPushedAt: Record<string, string> = {};
@@ -343,16 +342,11 @@ export async function pull(): Promise<boolean> {
 /** Bounded pull+push retries when the Worker returns 412/409 (stale If-Match). */
 export const MAX_SYNC_CONFLICT_RETRIES = 3;
 
-export async function syncNow(opts: { showProgress?: boolean } = {}): Promise<void> {
+export async function syncNow(): Promise<void> {
   if (!(await isConfigured())) return;
   if (_status === "syncing") return;
 
   setState("syncing");
-
-  let progress: ReturnType<typeof _api.notifications.progress> | null = null;
-  if (opts.showProgress) {
-    progress = _api.notifications.progress("Syncing via Cloudflare…", { indeterminate: true });
-  }
 
   try {
     let lastConflict: unknown;
@@ -369,19 +363,13 @@ export async function syncNow(opts: { showProgress?: boolean } = {}): Promise<vo
       }
     }
     if (lastConflict) throw lastConflict;
-    _consecutiveFailures = 0;
     if (_failureBannerId) {
       _failureBannerId.dismiss();
       _failureBannerId = null;
     }
-    if (progress) progress.finish("Cloudflare sync complete");
-    else if (opts.showProgress) {
-      _api.notifications.toast("Cloudflare sync complete", { severity: "success" });
-    }
     await _api.storage.set("lastSync", new Date().toISOString());
     setState("success");
   } catch (err) {
-    if (progress) progress.error("Cloudflare sync failed");
     if (!(await isConfigured())) {
       setState("idle");
       return;
@@ -390,46 +378,28 @@ export async function syncNow(opts: { showProgress?: boolean } = {}): Promise<vo
   }
 }
 
+// Polling stops on these, so they are the only failures surfaced outside sync-state.
+const FATAL_STATUS_MESSAGES: Record<number, string> = {
+  401: "Sync token is invalid or expired",
+  404: "Vault not found — re-configure in Settings",
+};
+
 function onSyncError(err: unknown) {
-  _consecutiveFailures++;
   if (err instanceof WorkerApiError) {
-    if (err.status === 401) {
+    const fatal = FATAL_STATUS_MESSAGES[err.status];
+    if (fatal) {
       stopPoll();
-      setState("error", "Sync token is invalid or expired");
-      if (!_failureBannerId) {
-        _failureBannerId = _api.notifications.banner(
-          "Cloudflare Sync: sync token is invalid or expired",
-          { severity: "error" },
-        );
-      }
+      setState("error", fatal);
+      _failureBannerId ??= _api.notifications.banner(`Cloudflare Sync: ${fatal}`, { severity: "error" });
       return;
     }
     if (isConflictStatus(err.status)) {
       setState("error", "Remote changed during sync — try again");
       return;
     }
-    if (err.status === 404) {
-      stopPoll();
-      setState("error", "Vault not found — re-configure in Settings");
-      if (!_failureBannerId) {
-        _failureBannerId = _api.notifications.banner(
-          "Cloudflare Sync: vault not found — re-configure in Settings",
-          { severity: "error" },
-        );
-      }
-      return;
-    }
   }
   const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
-  const msg = err instanceof Error ? err.message : String(err);
-  setState(isOffline ? "offline" : "error", isOffline ? undefined : msg);
-  if (_consecutiveFailures >= 3 && !_failureBannerId) {
-    _failureBannerId = _api.notifications.banner(`Cloudflare Sync: repeated failures — ${msg}`, {
-      severity: "warning",
-    });
-  } else if (_consecutiveFailures < 3) {
-    _api.notifications.toast("Cloudflare sync skipped — offline?", { severity: "warning" });
-  }
+  setState(isOffline ? "offline" : "error", isOffline ? undefined : err instanceof Error ? err.message : String(err));
 }
 
 export function startPoll(intervalSeconds: number) {

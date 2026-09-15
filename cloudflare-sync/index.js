@@ -592,7 +592,6 @@ var _error = null;
 var _blobSizeBytes = null;
 var _configured = false;
 var _pollInterval = null;
-var _consecutiveFailures = 0;
 var _failureBannerId = null;
 var _lastSeenPushedAt = {};
 function getCloudflareSyncState() {
@@ -832,14 +831,10 @@ async function pull() {
   return true;
 }
 var MAX_SYNC_CONFLICT_RETRIES = 3;
-async function syncNow(opts = {}) {
+async function syncNow() {
   if (!await isConfigured()) return;
   if (_status === "syncing") return;
   setState("syncing");
-  let progress = null;
-  if (opts.showProgress) {
-    progress = _api.notifications.progress("Syncing via Cloudflare\u2026", { indeterminate: true });
-  }
   try {
     let lastConflict;
     for (let attempt = 0; attempt <= MAX_SYNC_CONFLICT_RETRIES; attempt++) {
@@ -855,19 +850,13 @@ async function syncNow(opts = {}) {
       }
     }
     if (lastConflict) throw lastConflict;
-    _consecutiveFailures = 0;
     if (_failureBannerId) {
       _failureBannerId.dismiss();
       _failureBannerId = null;
     }
-    if (progress) progress.finish("Cloudflare sync complete");
-    else if (opts.showProgress) {
-      _api.notifications.toast("Cloudflare sync complete", { severity: "success" });
-    }
     await _api.storage.set("lastSync", (/* @__PURE__ */ new Date()).toISOString());
     setState("success");
   } catch (err) {
-    if (progress) progress.error("Cloudflare sync failed");
     if (!await isConfigured()) {
       setState("idle");
       return;
@@ -875,46 +864,26 @@ async function syncNow(opts = {}) {
     onSyncError(err);
   }
 }
+var FATAL_STATUS_MESSAGES = {
+  401: "Sync token is invalid or expired",
+  404: "Vault not found \u2014 re-configure in Settings"
+};
 function onSyncError(err) {
-  _consecutiveFailures++;
   if (err instanceof WorkerApiError) {
-    if (err.status === 401) {
+    const fatal = FATAL_STATUS_MESSAGES[err.status];
+    if (fatal) {
       stopPoll();
-      setState("error", "Sync token is invalid or expired");
-      if (!_failureBannerId) {
-        _failureBannerId = _api.notifications.banner(
-          "Cloudflare Sync: sync token is invalid or expired",
-          { severity: "error" }
-        );
-      }
+      setState("error", fatal);
+      _failureBannerId ??= _api.notifications.banner(`Cloudflare Sync: ${fatal}`, { severity: "error" });
       return;
     }
     if (isConflictStatus(err.status)) {
       setState("error", "Remote changed during sync \u2014 try again");
       return;
     }
-    if (err.status === 404) {
-      stopPoll();
-      setState("error", "Vault not found \u2014 re-configure in Settings");
-      if (!_failureBannerId) {
-        _failureBannerId = _api.notifications.banner(
-          "Cloudflare Sync: vault not found \u2014 re-configure in Settings",
-          { severity: "error" }
-        );
-      }
-      return;
-    }
   }
   const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
-  const msg = err instanceof Error ? err.message : String(err);
-  setState(isOffline ? "offline" : "error", isOffline ? void 0 : msg);
-  if (_consecutiveFailures >= 3 && !_failureBannerId) {
-    _failureBannerId = _api.notifications.banner(`Cloudflare Sync: repeated failures \u2014 ${msg}`, {
-      severity: "warning"
-    });
-  } else if (_consecutiveFailures < 3) {
-    _api.notifications.toast("Cloudflare sync skipped \u2014 offline?", { severity: "warning" });
-  }
+  setState(isOffline ? "offline" : "error", isOffline ? void 0 : err instanceof Error ? err.message : String(err));
 }
 function startPoll(intervalSeconds) {
   stopPoll();
@@ -1323,7 +1292,7 @@ function ConfiguredView({ api }) {
           ] }),
           /* @__PURE__ */ jsx3("span", { className: "text-xs text-(--t-text-dim)", children: sync.lastSync ? `Last synced ${sync.lastSync.toLocaleString()}` : "Not synced yet in this session" })
         ] }),
-        /* @__PURE__ */ jsx3(Btn, { onClick: () => void run("sync", () => syncNow({ showProgress: true })), busy: busy === "sync" || sync.status === "syncing", children: "Sync now" })
+        /* @__PURE__ */ jsx3(Btn, { onClick: () => void run("sync", () => syncNow()), busy: busy === "sync" || sync.status === "syncing", children: "Sync now" })
       ] }),
       /* @__PURE__ */ jsxs3("div", { className: "flex items-center justify-between gap-4 pt-3 border-t border-(--t-border)", children: [
         /* @__PURE__ */ jsx3("span", { className: "text-sm text-(--t-text-muted)", children: "Check for changes every" }),

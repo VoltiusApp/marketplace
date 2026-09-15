@@ -81,7 +81,7 @@ function ConfiguredView({ api }: { api: PluginAPI }) {
               {sync.lastSync ? `Last synced ${sync.lastSync.toLocaleString()}` : "Not synced yet in this session"}
             </span>
           </div>
-          <Btn onClick={() => void run("sync", () => syncNow({ showProgress: true }))} busy={busy === "sync" || sync.status === "syncing"}>
+          <Btn onClick={() => void run("sync", () => syncNow())} busy={busy === "sync" || sync.status === "syncing"}>
             Sync now
           </Btn>
         </div>
