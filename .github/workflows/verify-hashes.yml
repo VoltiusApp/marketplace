@@ -8,12 +8,9 @@ name: Verify plugin hashes
 # change without a matching plugins.json update).
 
 on:
+  # No paths filter: `verify` is a required status check, so a PR touching none of the
+  # hashed paths would otherwise never report and could never merge.
   pull_request:
-    paths:
-      - plugins.json
-      - "**/index.js"
-      - "**/manifest.json"
-      - scripts/stamp-hashes.mjs
   push:
     branches: [main]
 

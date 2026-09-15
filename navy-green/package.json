@@ -5,6 +5,6 @@
     "build": "esbuild src/index.ts --bundle --platform=browser --format=esm --external:react --external:react-dom --outfile=dist/index.js"
   },
   "devDependencies": {
-    "esbuild": "^0.21.0"
+    "esbuild": "^0.25.0"
   }
 }
