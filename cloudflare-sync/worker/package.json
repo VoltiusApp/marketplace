@@ -16,15 +16,18 @@
     "deploy:easy": "npm run setup:buckets && npm run deploy && npm run secret:token"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.8.71",
-    "@cloudflare/workers-types": "^4.20250906.0",
+    "@cloudflare/vitest-pool-workers": "^0.22.0",
+    "@cloudflare/workers-types": "^5.20260915.1",
     "typescript": "^5.9.3",
-    "vitest": "~3.2.0",
-    "wrangler": "4.59.1"
+    "vitest": "~4.1.11",
+    "wrangler": "^4.132.0"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/VoltiusApp/marketplace.git",
     "directory": "cloudflare-sync/worker"
+  },
+  "overrides": {
+    "sharp": "^0.35.4"
   }
 }

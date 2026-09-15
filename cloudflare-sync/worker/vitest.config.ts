@@ -1,16 +1,10 @@
-import { defineWorkersConfig } from "@cloudflare/vitest-pool-workers/config";
+import { cloudflareTest } from "@cloudflare/vitest-pool-workers";
+import { defineConfig } from "vitest/config";
 
-export default defineWorkersConfig({
+export default defineConfig({
+  plugins: [cloudflareTest({ wrangler: { configPath: "./wrangler.toml" } })],
   test: {
+    // Tests share one R2 bucket and clear it in beforeEach, so files must not run concurrently.
     fileParallelism: false,
-    poolOptions: {
-      workers: {
-        wrangler: { configPath: "./wrangler.toml" },
-        // R2 isolated storage pop is flaky in vitest-pool-workers (shm files).
-        // Tests clear the bucket in beforeEach and run files serially instead.
-        isolatedStorage: false,
-        singleWorker: true,
-      },
-    },
   },
 });
