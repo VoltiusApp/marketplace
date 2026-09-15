@@ -1,0 +1,30 @@
+{
+  "name": "voltius-cloudflare-sync-worker",
+  "version": "0.2.0",
+  "private": true,
+  "description": "BYO Cloudflare Worker + R2 opaque vault sync backend for Voltius",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.test.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "setup:buckets": "wrangler r2 bucket create voltius-vault-sync ; wrangler r2 bucket create voltius-vault-sync-preview",
+    "secret:token": "wrangler secret put SYNC_TOKEN",
+    "deploy:easy": "npm run setup:buckets && npm run deploy && npm run secret:token"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.8.71",
+    "@cloudflare/workers-types": "^4.20250906.0",
+    "typescript": "^5.9.3",
+    "vitest": "~3.2.0",
+    "wrangler": "4.35.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/VoltiusApp/marketplace.git",
+    "directory": "cloudflare-sync/worker"
+  }
+}
