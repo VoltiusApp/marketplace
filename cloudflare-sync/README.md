@@ -52,21 +52,26 @@ cd worker && npm ci && npm run typecheck && npm test
 
 ### In Voltius (recommended)
 
-**Settings → Cloudflare Sync → Deploy Worker**:
+**Settings → Cloudflare Sync** walks through three steps:
 
-1. Cloudflare Account ID + API token (Workers Scripts Edit, Workers R2 Storage Edit, Account Settings Read)
-2. **Generate sync token**
-3. **Deploy Worker** — creates the R2 bucket if needed, uploads the bundled Worker, sets `SYNC_TOKEN`, fills Worker URL
-4. Enter a **separate** encryption passphrase → **Create vault** / **Link existing**
+1. **Where is your sync Worker?** Choose *Deploy one for me*, or *I already have one* for a second
+   device or a Worker you deployed yourself.
+2. **Deploy the Worker.** Enter your Account ID (in the Cloudflare dashboard press Ctrl+K and search
+   *Account ID*) and an API token. The *Create a token* link opens Cloudflare's token page with
+   Workers Scripts Edit, Workers R2 Storage Edit and Account Settings Read already selected. Deploy
+   creates the R2 bucket if needed, uploads the bundled Worker and sets a freshly generated
+   `SYNC_TOKEN`. With an existing Worker, enter its URL and sync token instead.
+3. **Passphrase.** The plugin checks the Worker: a new vault asks for a passphrase twice and creates
+   it, an existing vault asks for its passphrase and links it.
 
-The Worker URL, sync token and passphrase are saved only when Create vault or Link existing
-succeeds. The Cloudflare API token is kept in React state only (never persisted). Account ID /
-Worker name / bucket name are stored in plugin storage.
+The Worker URL, sync token and passphrase are saved only once step 3 succeeds. The Cloudflare API
+token is never saved. Once set up, the settings page shows the Worker URL and a link to copy the sync
+token for your other devices.
 
 ### Manual / CLI
 
-From `worker/`: `npm run setup:buckets`, `npm run deploy`, `npm run secret:token`.
-The **Copy Deploy-to-Cloudflare URL** button deploys the upstream Worker repository instead of this copy.
+From `worker/`: `npm run setup:buckets`, `npm run deploy`, `npm run secret:token`. Then choose *I
+already have one* in Voltius.
 
 ## Permissions
 

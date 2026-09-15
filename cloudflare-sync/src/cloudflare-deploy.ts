@@ -3,8 +3,22 @@ import { parseJson, send, type Http, type HttpResult } from "./http";
 
 const CF_API = "https://api.cloudflare.com/client/v4";
 
-export const DEPLOY_TO_CLOUDFLARE_URL =
-  "https://deploy.workers.cloudflare.com/?url=https://github.com/mrchatam/voltius-cloudflare-sync-worker";
+export const CLOUDFLARE_DASHBOARD_URL = "https://dash.cloudflare.com/";
+
+const TOKEN_PERMISSIONS = [
+  { key: "workers_scripts", type: "edit" },
+  { key: "workers_r2", type: "edit" },
+  { key: "account_settings", type: "read" },
+];
+
+export const CREATE_API_TOKEN_URL =
+  "https://dash.cloudflare.com/profile/api-tokens?" +
+  new URLSearchParams({
+    permissionGroupKeys: JSON.stringify(TOKEN_PERMISSIONS),
+    accountId: "*",
+    zoneId: "all",
+    name: "Voltius Cloudflare Sync",
+  }).toString();
 
 export const DEFAULT_WORKER_NAME = "voltius-cloudflare-sync";
 export const DEFAULT_BUCKET_NAME = "voltius-vault-sync";
