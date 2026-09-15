@@ -53,8 +53,16 @@ export function getCloudflareSyncState() {
   };
 }
 
+const _listeners = new Set<() => void>();
+
+export function onCloudflareSyncStateChange(cb: () => void): () => void {
+  _listeners.add(cb);
+  return () => _listeners.delete(cb);
+}
+
 function publish() {
   _api.ui.publishState("sync-state", getCloudflareSyncState());
+  for (const cb of _listeners) cb();
 }
 
 function setState(status: SyncStatus, error?: string) {
@@ -104,6 +112,20 @@ async function getDeviceLabel(): Promise<string> {
   return match ? match[1].split(";")[0].trim() : "Unknown device";
 }
 
+export type VaultState = "exists" | "empty";
+
+export async function detectVault(workerUrl: string, token: string): Promise<VaultState> {
+  const normalized = normalizeWorkerUrl(workerUrl);
+  if (!token.trim()) throw new Error("cloudflare-sync: sync token is required");
+  try {
+    await getManifest(_api.http, normalized, token);
+    return "exists";
+  } catch (err) {
+    if (err instanceof WorkerApiError && err.status === 404) return "empty";
+    throw err;
+  }
+}
+
 export async function isConfigured(): Promise<boolean> {
   const [url, token, passphrase] = await Promise.all([
     getWorkerUrl(),
@@ -146,21 +168,9 @@ export async function setupNewVault(
   opts: { overwrite?: boolean } = {},
 ): Promise<void> {
   const normalized = normalizeWorkerUrl(workerUrl);
-  if (!token.trim()) throw new Error("cloudflare-sync: sync token is required");
   if (!passphrase) throw new Error("cloudflare-sync: passphrase is required");
 
-  let remoteExists = false;
-  try {
-    await getManifest(_api.http, normalized, token);
-    remoteExists = true;
-  } catch (err) {
-    if (err instanceof WorkerApiError && err.status === 404) {
-      remoteExists = false;
-    } else {
-      throw err;
-    }
-  }
-  if (remoteExists && !opts.overwrite) {
+  if ((await detectVault(normalized, token)) === "exists" && !opts.overwrite) {
     throw new Error(
       "cloudflare-sync: remote vault already exists — use Link existing, or confirm overwrite",
     );
@@ -372,6 +382,10 @@ export async function syncNow(opts: { showProgress?: boolean } = {}): Promise<vo
     setState("success");
   } catch (err) {
     if (progress) progress.error("Cloudflare sync failed");
+    if (!(await isConfigured())) {
+      setState("idle");
+      return;
+    }
     onSyncError(err);
   }
 }
