@@ -85,6 +85,7 @@
       "sync",
       "github"
     ],
+    "icon": "custom:github",
     "theme": false
   },
   {
@@ -131,6 +132,7 @@
       "docker",
       "containers"
     ],
+    "icon": "custom:docker",
     "theme": false
   },
   {
@@ -177,6 +179,7 @@
       "proxmox",
       "virtualization"
     ],
+    "icon": "devicon:proxmox-plain",
     "theme": false
   },
   {
@@ -203,6 +206,7 @@
       "sync",
       "cloudflare"
     ],
+    "icon": "simple-icons:cloudflare",
     "theme": false
   }
 ]

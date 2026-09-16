@@ -26,7 +26,24 @@ Each element of `plugins.json` is an object:
 | `hash`        | yes\*    | Lowercase-hex SHA-256 of the served `index.js` — see [Integrity](#integrity)             |
 | `permissions` | yes      | The permissions the served `manifest.json` declares — see [Permissions](#permissions)    |
 | `tags`        | no       | Array of strings for search/filtering                                                    |
+| `icon`        | no       | Iconify name shown on the entry's row, e.g. `simple-icons:cloudflare` — see [Icons](#icons) |
 | `theme`       | no       | `true` for theme-only plugins                                                            |
+
+## Icons
+
+`icon` is optional. Without it an entry shows a generic puzzle (or palette, for a theme).
+
+The app bundles its icon sets offline and never fetches an icon over the network, so only these
+prefixes render — anything else silently falls back to the generic icon:
+
+- `lucide:` — the app's own icon set, e.g. `lucide:database`
+- `simple-icons:`, `custom:`, `devicon:`, `devicon-plain:` — brand marks the app already bundles
+
+If the mark your plugin needs is not bundled yet, open an issue on the app repo asking for it
+rather than pointing `icon` at a set the app does not carry.
+
+Name your plugin after what it integrates with, not after a product it resembles — the same rule
+as [Naming](#naming). An `icon` is the integration's own mark, not a badge of endorsement.
 
 `repo` is resolved the same way the client resolves it: if it starts with `http` it is used as-is;
 otherwise it is treated as `owner/name` and the bundle is fetched from
