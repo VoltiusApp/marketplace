@@ -5,7 +5,7 @@ import { init, isConfigured, syncNow, startPoll, stopPoll, push } from "./sync-e
 
 /** Same expose contract as gist-sync — host SyncDropdown may call syncNow if present. */
 export type CloudflareSyncPublicApi = {
-  syncNow(opts?: { showProgress?: boolean }): Promise<void>;
+  syncNow(): Promise<void>;
 };
 
 export default function register(api: PluginAPI): () => void {
