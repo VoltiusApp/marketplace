@@ -15,7 +15,7 @@ export default function register(api: PluginAPI): () => void {
   api.ui.registerSettingsPage({
     id: "cloudflare-sync-settings",
     label: () => api.i18n.t("settingsLabel"),
-    icon: "lucide:cloud",
+    icon: "simple-icons:cloudflare",
     component: createSettingsPage(api),
   });
 

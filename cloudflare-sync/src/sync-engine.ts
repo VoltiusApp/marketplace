@@ -38,7 +38,6 @@ let _error: string | null = null;
 let _blobSizeBytes: number | null = null;
 let _configured = false;
 let _pollInterval: ReturnType<typeof setInterval> | null = null;
-let _failureBannerId: { dismiss(): void } | null = null;
 /** deviceId → last known pushedAt (change detection for pull) */
 let _lastSeenPushedAt: Record<string, string> = {};
 
@@ -363,10 +362,6 @@ export async function syncNow(): Promise<void> {
       }
     }
     if (lastConflict) throw lastConflict;
-    if (_failureBannerId) {
-      _failureBannerId.dismiss();
-      _failureBannerId = null;
-    }
     await _api.storage.set("lastSync", new Date().toISOString());
     setState("success");
   } catch (err) {
@@ -378,7 +373,7 @@ export async function syncNow(): Promise<void> {
   }
 }
 
-// Polling stops on these, so they are the only failures surfaced outside sync-state.
+// Polling stops on these until the user reconfigures.
 const FATAL_STATUS_MESSAGES: Record<number, string> = {
   401: "Sync token is invalid or expired",
   404: "Vault not found — re-configure in Settings",
@@ -390,7 +385,6 @@ function onSyncError(err: unknown) {
     if (fatal) {
       stopPoll();
       setState("error", fatal);
-      _failureBannerId ??= _api.notifications.banner(`Cloudflare Sync: ${fatal}`, { severity: "error" });
       return;
     }
     if (isConflictStatus(err.status)) {
