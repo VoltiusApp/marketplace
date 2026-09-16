@@ -592,7 +592,6 @@ var _error = null;
 var _blobSizeBytes = null;
 var _configured = false;
 var _pollInterval = null;
-var _failureBannerId = null;
 var _lastSeenPushedAt = {};
 function getCloudflareSyncState() {
   return {
@@ -850,10 +849,6 @@ async function syncNow() {
       }
     }
     if (lastConflict) throw lastConflict;
-    if (_failureBannerId) {
-      _failureBannerId.dismiss();
-      _failureBannerId = null;
-    }
     await _api.storage.set("lastSync", (/* @__PURE__ */ new Date()).toISOString());
     setState("success");
   } catch (err) {
@@ -874,7 +869,6 @@ function onSyncError(err) {
     if (fatal) {
       stopPoll();
       setState("error", fatal);
-      _failureBannerId ??= _api.notifications.banner(`Cloudflare Sync: ${fatal}`, { severity: "error" });
       return;
     }
     if (isConflictStatus(err.status)) {
@@ -1405,7 +1399,7 @@ function register(api) {
   api.ui.registerSettingsPage({
     id: "cloudflare-sync-settings",
     label: () => api.i18n.t("settingsLabel"),
-    icon: "lucide:cloud",
+    icon: "simple-icons:cloudflare",
     component: createSettingsPage(api)
   });
   api.plugins.expose({ syncNow });
