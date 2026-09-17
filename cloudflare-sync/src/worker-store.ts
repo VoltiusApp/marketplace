@@ -26,8 +26,6 @@ export function toStoreError(err: unknown): unknown {
   return err;
 }
 
-const isNotFound = (err: unknown) => err instanceof WorkerApiError && err.status === 404;
-
 export class WorkerStore implements VaultStore {
   constructor(
     private readonly http: Http,
@@ -43,17 +41,21 @@ export class WorkerStore implements VaultStore {
     }
   }
 
+  private async nullOn404<T>(fn: () => Promise<T>): Promise<T | null> {
+    try {
+      return await fn();
+    } catch (err) {
+      if (err instanceof WorkerApiError && err.status === 404) return null;
+      throw toStoreError(err);
+    }
+  }
+
   private manifest(): Promise<WorkerManifest> {
     return this.guard(() => getManifest(this.http, this.workerUrl, this.token));
   }
 
   async readSalt(): Promise<string | null> {
-    try {
-      return (await getManifest(this.http, this.workerUrl, this.token)).salt;
-    } catch (err) {
-      if (isNotFound(err)) return null;
-      throw toStoreError(err);
-    }
+    return this.nullOn404(async () => (await getManifest(this.http, this.workerUrl, this.token)).salt);
   }
 
   async createSalt(salt: string): Promise<string> {
@@ -72,12 +74,7 @@ export class WorkerStore implements VaultStore {
   }
 
   async getDevice(id: string): Promise<string | null> {
-    try {
-      return await getDeviceBlob(this.http, this.workerUrl, this.token, id);
-    } catch (err) {
-      if (isNotFound(err)) return null;
-      throw toStoreError(err);
-    }
+    return this.nullOn404(() => getDeviceBlob(this.http, this.workerUrl, this.token, id));
   }
 
   async putDevice(id: string, blob: string, info: { label: string; pushedAt: string }): Promise<void> {
