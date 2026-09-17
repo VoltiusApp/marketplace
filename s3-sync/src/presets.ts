@@ -25,3 +25,8 @@ export const PRESETS: Preset[] = [
 export function endpointFor(preset: Preset, region: string): string {
   return preset.endpoint.replace("{region}", region.trim() || preset.region);
 }
+
+export function endpointAfterRegionChange(preset: Preset | null, endpoint: string, previousRegion: string, region: string): string {
+  if (!preset?.endpoint.includes("{region}") || endpoint !== endpointFor(preset, previousRegion)) return endpoint;
+  return endpointFor(preset, region);
+}

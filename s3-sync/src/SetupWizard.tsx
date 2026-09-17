@@ -4,7 +4,7 @@ import type { VaultSyncEngine } from "../../shared/vault-sync/src/engine";
 import { Btn, ErrorBanner, Hint, INPUT_CLASS, LinkButton, SecretInput, TextInput, openExternal, useAction } from "../../shared/vault-sync/src/ui/components";
 import { ActionRow, PassphraseStep, StepCard, type Connection } from "../../shared/vault-sync/src/ui/wizard";
 import { displayPrefix, normalizeEndpoint, normalizePrefix, toConfigValues, validateBucket, type Addressing, type S3Config } from "./config";
-import { endpointFor, PRESETS, type Preset } from "./presets";
+import { endpointAfterRegionChange, endpointFor, PRESETS, type Preset } from "./presets";
 import { S3Store } from "./s3-store";
 
 export function SetupWizard({ api, engine, onDone }: { api: PluginAPI; engine: VaultSyncEngine; onDone: () => void }) {
@@ -29,8 +29,8 @@ export function SetupWizard({ api, engine, onDone }: { api: PluginAPI; engine: V
   };
 
   const changeRegion = (value: string) => {
+    setEndpoint(endpointAfterRegionChange(preset, endpoint, region, value));
     setRegion(value);
-    if (preset?.endpoint.includes("{region}")) setEndpoint(endpointFor(preset, value));
   };
 
   const connect = () =>
