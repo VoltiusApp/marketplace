@@ -1,0 +1,20 @@
+{
+  "name": "@voltius-marketplace/vault-sync",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@tauri-apps/plugin-clipboard-manager": "^2.3.3",
+    "@tauri-apps/plugin-opener": "^2.5.5"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@voltius/plugin-types": "^0.34.0",
+    "typescript": "^5.6.0",
+    "vitest": "^3.2.4"
+  }
+}
