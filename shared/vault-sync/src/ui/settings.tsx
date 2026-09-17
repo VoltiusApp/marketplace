@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Icon } from "@voltius/ui";
 import type { PluginAPI } from "@voltius/plugin-types";
 import type { VaultSyncEngine } from "../engine";
@@ -29,12 +29,11 @@ function ConfiguredView({
   const { busy, error, run } = useAction();
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
 
+  const deviceRequest = useRef(0);
   const loadDevices = useCallback(async () => {
-    try {
-      setDevices(await engine.listRemoteDevices());
-    } catch {
-      setDevices(null);
-    }
+    const request = ++deviceRequest.current;
+    const next = await engine.listRemoteDevices().catch(() => null);
+    if (request === deviceRequest.current) setDevices(next);
   }, [engine]);
 
   useEffect(() => {
