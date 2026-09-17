@@ -125,24 +125,6 @@ export async function getDeviceBlob(
   return data.content;
 }
 
-export async function getDeviceBlobs(
-  http: Http,
-  workerUrl: string,
-  token: string,
-  deviceIds: string[],
-): Promise<string[]> {
-  const blobs: string[] = [];
-  for (const id of deviceIds) {
-    try {
-      blobs.push(await getDeviceBlob(http, workerUrl, token, id));
-    } catch (err) {
-      if (err instanceof WorkerApiError && err.status === 404) continue;
-      throw err;
-    }
-  }
-  return blobs;
-}
-
 export async function putDeviceBlob(
   http: Http,
   workerUrl: string,

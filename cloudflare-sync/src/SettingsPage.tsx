@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import type { PluginAPI } from "@voltius/plugin-types";
 import type { VaultSyncEngine } from "../../shared/vault-sync/src/engine";
-import { Card, copyText, ErrorBanner, Hint, LinkButton, useAction } from "../../shared/vault-sync/src/ui/components";
+import { Card, ErrorBanner, Hint, LinkButton, useAction } from "../../shared/vault-sync/src/ui/components";
 import { SettingsShell } from "../../shared/vault-sync/src/ui/settings";
+import { copyToken } from "./copyToken";
 import { SetupWizard } from "./SetupWizard";
 
 function ConnectionCard({ api }: { api: PluginAPI }) {
@@ -11,13 +12,7 @@ function ConnectionCard({ api }: { api: PluginAPI }) {
   useEffect(() => {
     void api.storage.get<string>("workerUrl").then((u) => setWorkerUrl(u ?? ""));
   }, [api]);
-  const copyToken = () =>
-    run("copy", async () => {
-      const token = await api.vault.get("syncToken");
-      if (!token) throw new Error("No sync token is stored on this device.");
-      await copyText(token);
-      api.notifications.toast("Sync token copied", { severity: "success" });
-    });
+  const copyStoredToken = () => run("copy", async () => copyToken(api, await api.vault.get("syncToken")));
   return (
     <Card title="Connection">
       <div className="flex flex-col gap-1">
@@ -27,7 +22,7 @@ function ConnectionCard({ api }: { api: PluginAPI }) {
       {error && <ErrorBanner message={error} />}
       <Hint>
         To add another device, open Cloudflare Sync there, choose <span className="font-medium">I already have one</span>, and
-        enter this Worker URL, the sync token (<LinkButton onClick={() => void copyToken()}>copy it</LinkButton>) and your
+        enter this Worker URL, the sync token (<LinkButton onClick={() => void copyStoredToken()}>copy it</LinkButton>) and your
         passphrase.
       </Hint>
     </Card>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Icon } from "@voltius/ui";
 import type { PluginAPI } from "@voltius/plugin-types";
 import {
@@ -13,7 +13,6 @@ import type { VaultSyncEngine } from "../../shared/vault-sync/src/engine";
 import { describeError } from "../../shared/vault-sync/src/describeError";
 import {
   Btn,
-  copyText,
   ErrorBanner,
   Hint,
   LinkButton,
@@ -30,6 +29,7 @@ import {
   type Connection,
   type StepState,
 } from "../../shared/vault-sync/src/ui/wizard";
+import { copyToken } from "./copyToken";
 import { getHealth, normalizeWorkerUrl } from "./worker-api";
 import { WorkerStore } from "./worker-store";
 
@@ -168,13 +168,7 @@ export function SetupWizard({ api, engine, onDone }: { api: PluginAPI; engine: V
               {deployedToken && (
                 <span>
                   Sync token generated.{" "}
-                  <LinkButton
-                    onClick={() => {
-                      void copyText(deployedToken).then(() =>
-                        api.notifications.toast("Sync token copied", { severity: "success" }),
-                      );
-                    }}
-                  >
+                  <LinkButton onClick={() => void copyToken(api, deployedToken)}>
                     Copy it
                   </LinkButton>{" "}
                   to set up your other devices.
