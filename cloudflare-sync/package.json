@@ -1,19 +1,21 @@
 {
   "name": "voltius-plugin-cloudflare-sync",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "private": true,
   "type": "module",
   "scripts": {
     "build:worker": "esbuild worker/src/index.ts --bundle --platform=neutral --format=esm --outfile=dist/worker.mjs",
     "build": "npm run build:worker && esbuild src/index.tsx --bundle --platform=browser --format=esm --loader:.mjs=text --external:react --external:react/jsx-runtime --external:react-dom --external:@iconify/react --external:@voltius/ui --external:@voltius/api --outfile=index.js",
     "typecheck": "npm run build:worker && tsc --noEmit",
-    "check": "node scripts/check-externals.mjs"
+    "check": "node scripts/check-externals.mjs",
+    "test": "vitest run"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",
     "@voltius/plugin-types": "^0.34.0",
     "esbuild": "^0.25.0",
-    "typescript": "^5.6.0"
+    "typescript": "^5.6.0",
+    "vitest": "^3.2.4"
   },
   "description": "Voltius marketplace plugin: BYO Cloudflare Workers + R2 encrypted vault sync",
   "license": "MIT",
@@ -21,9 +23,5 @@
     "type": "git",
     "url": "https://github.com/VoltiusApp/marketplace.git",
     "directory": "cloudflare-sync"
-  },
-  "dependencies": {
-    "@tauri-apps/plugin-clipboard-manager": "^2.3.3",
-    "@tauri-apps/plugin-opener": "^2.5.5"
   }
 }

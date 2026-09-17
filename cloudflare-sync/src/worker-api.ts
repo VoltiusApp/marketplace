@@ -1,4 +1,4 @@
-import { parseJson, send, type Http, type HttpResult } from "./http";
+import { parseJson, send, type Http, type HttpResult } from "../../shared/vault-sync/src/http";
 
 export type WorkerDevice = {
   id: string;
@@ -125,24 +125,6 @@ export async function getDeviceBlob(
   return data.content;
 }
 
-export async function getDeviceBlobs(
-  http: Http,
-  workerUrl: string,
-  token: string,
-  deviceIds: string[],
-): Promise<string[]> {
-  const blobs: string[] = [];
-  for (const id of deviceIds) {
-    try {
-      blobs.push(await getDeviceBlob(http, workerUrl, token, id));
-    } catch (err) {
-      if (err instanceof WorkerApiError && err.status === 404) continue;
-      throw err;
-    }
-  }
-  return blobs;
-}
-
 export async function putDeviceBlob(
   http: Http,
   workerUrl: string,
@@ -168,4 +150,21 @@ export async function deleteDevice(
     method: "DELETE",
     headers: headers(token),
   });
+}
+
+export function normalizeWorkerUrl(raw: string): string {
+  const trimmed = raw.trim().replace(/\/+$/, "");
+  if (!trimmed) throw new Error("cloudflare-sync: Worker URL is required");
+  let url: URL;
+  try {
+    url = new URL(trimmed);
+  } catch {
+    throw new Error("cloudflare-sync: Worker URL is invalid");
+  }
+  const host = url.hostname.toLowerCase();
+  const local = host === "localhost" || host === "127.0.0.1" || host === "[::1]";
+  if (url.protocol !== "https:" && !(url.protocol === "http:" && local)) {
+    throw new Error("cloudflare-sync: Worker URL must use https:// (http:// only for localhost)");
+  }
+  return `${url.protocol}//${url.host}${url.pathname.replace(/\/+$/, "")}`;
 }

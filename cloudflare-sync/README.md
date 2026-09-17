@@ -36,10 +36,11 @@ Gist Sync is still the simplest path if you already have GitHub. Choose **Cloudf
 ## Build
 
 ```bash
-npm ci
-npm run typecheck
-npm run build       # → index.js (with worker/ inlined)
-npm run check       # host specifier gate
+npm ci                              # from the marketplace root: installs every workspace
+npm run typecheck -w cloudflare-sync
+npm run build -w cloudflare-sync
+npm test -w cloudflare-sync
+npm run check -w cloudflare-sync   # host specifier gate
 ```
 
 Worker tests:

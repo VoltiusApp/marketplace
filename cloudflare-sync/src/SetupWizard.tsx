@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Icon } from "@voltius/ui";
 import type { PluginAPI } from "@voltius/plugin-types";
 import {
@@ -9,111 +9,35 @@ import {
   deployWorker,
   generateSyncToken,
 } from "./cloudflare-deploy";
-import { Btn, copyText, ErrorBanner, Hint, LinkButton, SecretInput, TextInput, openExternal, useAction } from "./components";
-import { describeError } from "./errors";
+import type { VaultSyncEngine } from "../../shared/vault-sync/src/engine";
+import { describeError } from "../../shared/vault-sync/src/describeError";
 import {
-  detectVault,
-  linkExistingVault,
-  normalizeWorkerUrl,
-  setupNewVault,
-  startPoll,
-  syncNow,
-  type VaultState,
-} from "./sync-engine";
-import { getHealth } from "./worker-api";
+  Btn,
+  ErrorBanner,
+  Hint,
+  LinkButton,
+  SecretInput,
+  TextInput,
+  openExternal,
+  useAction,
+} from "../../shared/vault-sync/src/ui/components";
+import {
+  ActionRow,
+  ChoiceTile,
+  PassphraseStep,
+  StepCard,
+  type Connection,
+  type StepState,
+} from "../../shared/vault-sync/src/ui/wizard";
+import { copyToken } from "./copyToken";
+import { getHealth, normalizeWorkerUrl } from "./worker-api";
+import { WorkerStore } from "./worker-store";
 
 type Mode = "deploy" | "existing";
-type Connection = { workerUrl: string; token: string; vault: VaultState };
-type StepState = "active" | "done" | "locked";
 
 const HEALTH_ATTEMPTS_AFTER_DEPLOY = 20;
 const HEALTH_RETRY_MS = 3000;
 const ACCOUNT_ID_RE = /^[0-9a-f]{32}$/i;
-
-function StepCard({
-  n,
-  title,
-  state,
-  summary,
-  onChange,
-  children,
-}: {
-  n: number;
-  title: string;
-  state: StepState;
-  summary?: React.ReactNode;
-  onChange?: () => void;
-  children?: React.ReactNode;
-}) {
-  const badge =
-    state === "done" ? (
-      <span
-        className="flex items-center justify-center w-5 h-5 rounded-full"
-        style={{ background: "var(--t-status-connected)", color: "var(--t-bg-base)" }}
-      >
-        <Icon icon="lucide:check" width={12} />
-      </span>
-    ) : (
-      <span
-        className={`flex items-center justify-center w-5 h-5 rounded-full text-[11px] font-semibold ${
-          state === "active" ? "bg-(--t-accent) text-white" : "bg-(--t-bg-base) text-(--t-text-dim) border border-(--t-border)"
-        }`}
-      >
-        {n}
-      </span>
-    );
-  return (
-    <div
-      className={`flex flex-col gap-3 p-4 rounded-xl bg-(--t-bg-elevated) border ${
-        state === "active" ? "border-(--t-border-hover)" : "border-(--t-border)"
-      } ${state === "locked" ? "opacity-60" : ""}`}
-    >
-      <div className="flex items-center gap-2">
-        {badge}
-        <p className="flex-1 text-sm font-medium text-(--t-text-primary)">{title}</p>
-        {state === "done" && onChange && <LinkButton onClick={onChange}>Change</LinkButton>}
-      </div>
-      {state === "done" && summary && <div className="text-xs text-(--t-text-dim) pl-7">{summary}</div>}
-      {state === "active" && <div className="flex flex-col gap-3">{children}</div>}
-    </div>
-  );
-}
-
-function ChoiceTile({
-  icon,
-  title,
-  description,
-  onClick,
-}: {
-  icon: string;
-  title: string;
-  description: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex-1 flex flex-col items-start gap-1 p-3 rounded-lg text-left bg-(--t-bg-base) border border-(--t-border) hover:border-(--t-border-hover) transition-colors"
-      style={{ minWidth: "12rem" }}
-    >
-      <span className="flex items-center gap-2 text-sm font-medium text-(--t-text-primary)">
-        <Icon icon={icon} width={15} />
-        {title}
-      </span>
-      <span className="text-xs text-(--t-text-dim)">{description}</span>
-    </button>
-  );
-}
-
-function ActionRow({ children, reason }: { children: React.ReactNode; reason: string | null }) {
-  return (
-    <div className="flex flex-wrap items-center gap-3">
-      {children}
-      {reason && <span className="text-xs text-(--t-text-dim)">{reason}</span>}
-    </div>
-  );
-}
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -130,9 +54,10 @@ async function waitForWorker(api: PluginAPI, workerUrl: string, attempts: number
   throw new Error(`Could not reach the Worker at ${workerUrl}. ${lastError ? describeError(lastError) : ""}`.trim());
 }
 
-export function SetupWizard({ api, onDone }: { api: PluginAPI; onDone: () => void }) {
+export function SetupWizard({ api, engine, onDone }: { api: PluginAPI; engine: VaultSyncEngine; onDone: () => void }) {
   const [mode, setMode] = useState<Mode | null>(null);
   const [connection, setConnection] = useState<Connection | null>(null);
+  const [connectedUrl, setConnectedUrl] = useState("");
   const { busy, setBusy, error, setError, run } = useAction();
 
   const [accountId, setAccountId] = useState("");
@@ -144,8 +69,6 @@ export function SetupWizard({ api, onDone }: { api: PluginAPI; onDone: () => voi
 
   const [workerUrl, setWorkerUrl] = useState("");
   const [token, setToken] = useState("");
-  const [passphrase, setPassphrase] = useState("");
-  const [confirmPassphrase, setConfirmPassphrase] = useState("");
 
   useEffect(() => {
     void Promise.all([
@@ -162,8 +85,10 @@ export function SetupWizard({ api, onDone }: { api: PluginAPI; onDone: () => voi
   async function connect(url: string, syncToken: string, healthAttempts: number) {
     const normalized = normalizeWorkerUrl(url);
     await waitForWorker(api, normalized, healthAttempts);
-    const vault = await detectVault(normalized, syncToken);
-    setConnection({ workerUrl: normalized, token: syncToken, vault });
+    const store = new WorkerStore(api.http, normalized, syncToken);
+    const vault = await engine.detectVault(store);
+    setConnectedUrl(normalized);
+    setConnection({ store, vault, values: { storage: { workerUrl: normalized }, vault: { syncToken } } });
   }
 
   const deploy = () =>
@@ -183,29 +108,13 @@ export function SetupWizard({ api, onDone }: { api: PluginAPI; onDone: () => voi
       await connect(result.workerUrl, syncToken, HEALTH_ATTEMPTS_AFTER_DEPLOY);
     });
 
-  const finish = () =>
-    run(connection?.vault === "exists" ? "Linking…" : "Creating…", async () => {
-      if (!connection) return;
-      if (connection.vault === "exists") {
-        await linkExistingVault(connection.workerUrl, connection.token, passphrase);
-      } else {
-        await setupNewVault(connection.workerUrl, connection.token, passphrase);
-      }
-      startPoll((await api.storage.get<number>("pollIntervalSeconds")) ?? 60);
-      await syncNow();
-      onDone();
-    });
-
   const resetConnection = () => {
     setConnection(null);
-    setPassphrase("");
-    setConfirmPassphrase("");
     setError(null);
   };
 
   const step1: StepState = mode ? "done" : "active";
   const step2: StepState = !mode ? "locked" : connection ? "done" : "active";
-  const step3: StepState = connection ? "active" : "locked";
 
   const deployReason = !accountId.trim()
     ? "Enter your Account ID"
@@ -215,11 +124,6 @@ export function SetupWizard({ api, onDone }: { api: PluginAPI; onDone: () => voi
         ? "Enter an API token"
         : null;
   const connectReason = !workerUrl.trim() ? "Enter the Worker URL" : !token.trim() ? "Enter the sync token" : null;
-  const finishReason = !passphrase
-    ? "Enter a passphrase"
-    : connection?.vault === "empty" && passphrase !== confirmPassphrase
-      ? "The passphrases do not match"
-      : null;
 
   return (
     <div className="flex flex-col gap-3">
@@ -260,17 +164,11 @@ export function SetupWizard({ api, onDone }: { api: PluginAPI; onDone: () => voi
         summary={
           connection && (
             <div className="flex flex-col gap-1">
-              <span className="font-mono">{connection.workerUrl}</span>
+              <span className="font-mono">{connectedUrl}</span>
               {deployedToken && (
                 <span>
                   Sync token generated.{" "}
-                  <LinkButton
-                    onClick={() => {
-                      void copyText(deployedToken).then(() =>
-                        api.notifications.toast("Sync token copied", { severity: "success" }),
-                      );
-                    }}
-                  >
+                  <LinkButton onClick={() => void copyToken(api, deployedToken)}>
                     Copy it
                   </LinkButton>{" "}
                   to set up your other devices.
@@ -375,35 +273,17 @@ export function SetupWizard({ api, onDone }: { api: PluginAPI; onDone: () => voi
         )}
       </StepCard>
 
-      <StepCard
+      <PassphraseStep
+        key={connection ? "connected" : "none"}
         n={3}
-        title={connection?.vault === "exists" ? "Unlock your vault" : "Choose an encryption passphrase"}
-        state={step3}
-      >
-        {connection?.vault === "exists" ? (
-          <Hint>This Worker already holds a synced vault. Enter the passphrase you chose when you created it.</Hint>
-        ) : (
-          <Hint>
-            Your data is encrypted on this device with this passphrase before it leaves. You will need it on every
-            device, and it cannot be recovered.
-          </Hint>
-        )}
-        <SecretInput label="Passphrase" value={passphrase} onChange={setPassphrase} placeholder="Strong passphrase" />
-        {connection?.vault === "empty" && (
-          <SecretInput
-            label="Confirm passphrase"
-            value={confirmPassphrase}
-            onChange={setConfirmPassphrase}
-            placeholder="Type it again"
-          />
-        )}
-        <ActionRow reason={busy ?? finishReason}>
-          <Btn onClick={finish} disabled={!!finishReason} busy={!!busy}>
-            {connection?.vault === "exists" ? "Link vault" : "Create vault"}
-          </Btn>
-        </ActionRow>
-      </StepCard>
-
+        api={api}
+        engine={engine}
+        connection={connection}
+        busy={busy}
+        run={run}
+        existsHint="This Worker already holds a synced vault. Enter the passphrase you chose when you created it."
+        onDone={onDone}
+      />
     </div>
   );
 }
