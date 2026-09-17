@@ -108,6 +108,17 @@ function createVaultSyncEngine({ api, storageKeys, vaultKeys, openStore }) {
       markConfigured(isComplete(prevStored, prevSecrets));
     };
   }
+  async function withConfig(values, passphrase, fn) {
+    const rollback = await writeConfig(values, passphrase);
+    try {
+      await fn();
+      markConfigured(true);
+    } catch (err) {
+      await rollback().catch(() => {
+      });
+      throw err;
+    }
+  }
   async function pushTo(store, salt) {
     const [deviceId, label] = await Promise.all([getDeviceId(), getDeviceLabel()]);
     const blob = await api.sync.exportState(await encKey(salt), deviceId);
@@ -138,21 +149,13 @@ function createVaultSyncEngine({ api, storageKeys, vaultKeys, openStore }) {
     if (await detectVault(store) === "exists") {
       throw new Error("A remote vault already exists \u2014 link it instead");
     }
-    const rollback = await writeConfig(values, passphrase);
-    try {
-      await pushTo(store, await store.createSalt(generateSaltHex()));
-      markConfigured(true);
-    } catch (err) {
-      await rollback();
-      throw err;
-    }
+    await withConfig(values, passphrase, async () => pushTo(store, await store.createSalt(generateSaltHex())));
   }
   async function linkVault(store, passphrase, values) {
     if (!passphrase) throw new Error(PASSPHRASE_REQUIRED_MSG);
     const salt = await store.readSalt();
     if (!salt) throw new StoreError("not_found", "No vault exists here yet \u2014 create one instead");
-    const rollback = await writeConfig(values, passphrase);
-    try {
+    await withConfig(values, passphrase, async () => {
       const key = await encKey(salt);
       for (const d of await store.listDevices()) {
         const blob = await store.getDevice(d.id);
@@ -165,11 +168,7 @@ function createVaultSyncEngine({ api, storageKeys, vaultKeys, openStore }) {
         seenVersions[d.id] = d.version;
         break;
       }
-      markConfigured(true);
-    } catch (err) {
-      await rollback();
-      throw err;
-    }
+    });
   }
   function stopPoll() {
     if (pollTimer !== null) {
@@ -217,8 +216,14 @@ function createVaultSyncEngine({ api, storageKeys, vaultKeys, openStore }) {
     const offline = typeof navigator !== "undefined" && navigator.onLine === false;
     setState(offline ? "offline" : "error", offline ? void 0 : err instanceof Error ? err.message : String(err));
   }
-  async function syncNow() {
-    if (!await isConfigured() || status === "syncing") return;
+  let inFlight = null;
+  function syncNow() {
+    return inFlight ??= runSync().finally(() => {
+      inFlight = null;
+    });
+  }
+  async function runSync() {
+    if (!await isConfigured()) return;
     setState("syncing");
     try {
       for (let attempt = 0; ; attempt++) {
@@ -455,6 +460,8 @@ var WorkerStore = class {
     return this.nullOn404(async () => (await getManifest(this.http, this.workerUrl, this.token)).salt);
   }
   async createSalt(salt) {
+    const existing = await this.readSalt();
+    if (existing) return existing;
     return this.guard(async () => {
       const written = await putManifest(this.http, this.workerUrl, this.token, { schema: 1, salt, devices: [] });
       return written.salt;
@@ -741,7 +748,7 @@ function Hint({ children }) {
 }
 
 // ../shared/vault-sync/src/ui/settings.tsx
-import { useCallback, useEffect, useState as useState2 } from "react";
+import { useCallback, useEffect, useRef, useState as useState2 } from "react";
 import { Icon as Icon2 } from "@voltius/ui";
 import { Fragment, jsx as jsx2, jsxs as jsxs2 } from "react/jsx-runtime";
 function useEngineState(engine) {
@@ -761,12 +768,11 @@ function ConfiguredView({
   const [pollSeconds, setPollSeconds] = useState2(60);
   const { busy, error, run } = useAction();
   const [confirmDisconnect, setConfirmDisconnect] = useState2(false);
+  const deviceRequest = useRef(0);
   const loadDevices = useCallback(async () => {
-    try {
-      setDevices(await engine.listRemoteDevices());
-    } catch {
-      setDevices(null);
-    }
+    const request = ++deviceRequest.current;
+    const next = await engine.listRemoteDevices().catch(() => null);
+    if (request === deviceRequest.current) setDevices(next);
   }, [engine]);
   useEffect(() => {
     void loadDevices();
@@ -882,6 +888,13 @@ function SettingsShell({
     configured === false && wizard(() => setConfigured(true)),
     configured && /* @__PURE__ */ jsx2(ConfiguredView, { api, engine, connection, disconnectHint })
   ] });
+}
+
+// src/copyToken.ts
+async function copyToken(api, token) {
+  if (!token) throw new Error("No sync token is stored on this device.");
+  await copyText(token);
+  api.notifications.toast("Sync token copied", { severity: "success" });
 }
 
 // src/SetupWizard.tsx
@@ -1295,17 +1308,7 @@ function SetupWizard({ api, engine, onDone }) {
           deployedToken && /* @__PURE__ */ jsxs4("span", { children: [
             "Sync token generated.",
             " ",
-            /* @__PURE__ */ jsx4(
-              LinkButton,
-              {
-                onClick: () => {
-                  void copyText(deployedToken).then(
-                    () => api.notifications.toast("Sync token copied", { severity: "success" })
-                  );
-                },
-                children: "Copy it"
-              }
-            ),
+            /* @__PURE__ */ jsx4(LinkButton, { onClick: () => void copyToken(api, deployedToken), children: "Copy it" }),
             " ",
             "to set up your other devices."
           ] })
@@ -1436,12 +1439,7 @@ function ConnectionCard({ api }) {
   useEffect3(() => {
     void api.storage.get("workerUrl").then((u) => setWorkerUrl(u ?? ""));
   }, [api]);
-  const copyToken = () => run("copy", async () => {
-    const token = await api.vault.get("syncToken");
-    if (!token) throw new Error("No sync token is stored on this device.");
-    await copyText(token);
-    api.notifications.toast("Sync token copied", { severity: "success" });
-  });
+  const copyStoredToken = () => run("copy", async () => copyToken(api, await api.vault.get("syncToken")));
   return /* @__PURE__ */ jsxs5(Card, { title: "Connection", children: [
     /* @__PURE__ */ jsxs5("div", { className: "flex flex-col gap-1", children: [
       /* @__PURE__ */ jsx5("span", { className: "text-xs font-medium text-(--t-text-muted)", children: "Worker URL" }),
@@ -1452,7 +1450,7 @@ function ConnectionCard({ api }) {
       "To add another device, open Cloudflare Sync there, choose ",
       /* @__PURE__ */ jsx5("span", { className: "font-medium", children: "I already have one" }),
       ", and enter this Worker URL, the sync token (",
-      /* @__PURE__ */ jsx5(LinkButton, { onClick: () => void copyToken(), children: "copy it" }),
+      /* @__PURE__ */ jsx5(LinkButton, { onClick: () => void copyStoredToken(), children: "copy it" }),
       ") and your passphrase."
     ] })
   ] });
