@@ -37,6 +37,11 @@ describe("normalizePrefix", () => {
     expect(normalizePrefix("")).toBe("");
     expect(normalizePrefix(" /voltius/team/ ")).toBe("voltius/team/");
   });
+  it("rejects a \".\" or \"..\" segment", () => {
+    expect(() => normalizePrefix("./voltius")).toThrow(/segment/);
+    expect(() => normalizePrefix("voltius/../x")).toThrow(/segment/);
+    expect(() => normalizePrefix("voltius/..")).toThrow(/segment/);
+  });
 });
 
 describe("validateBucket", () => {

@@ -48,7 +48,11 @@ export function normalizeEndpoint(raw: string): string {
 
 export function normalizePrefix(raw: string): string {
   const p = raw.trim().replace(/^\/+|\/+$/g, "");
-  return p ? `${p}/` : "";
+  if (!p) return "";
+  if (p.split("/").some((seg) => seg === "." || seg === "..")) {
+    throw new Error('s3-sync: the prefix cannot contain a "." or ".." segment');
+  }
+  return `${p}/`;
 }
 
 const BUCKET_RE = /^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/;

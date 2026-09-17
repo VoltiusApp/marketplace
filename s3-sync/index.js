@@ -324,7 +324,11 @@ function normalizeEndpoint(raw) {
 }
 function normalizePrefix(raw) {
   const p = raw.trim().replace(/^\/+|\/+$/g, "");
-  return p ? `${p}/` : "";
+  if (!p) return "";
+  if (p.split("/").some((seg) => seg === "." || seg === "..")) {
+    throw new Error('s3-sync: the prefix cannot contain a "." or ".." segment');
+  }
+  return `${p}/`;
 }
 var BUCKET_RE = /^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/;
 function validateBucket(bucket) {
