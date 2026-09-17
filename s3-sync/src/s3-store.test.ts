@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { fakeHttp, type RecordedRequest } from "../../shared/vault-sync/src/testing/fakes";
 import type { S3Config } from "./config";
-import { S3Store } from "./s3-store";
+import { md5Base64 } from "./md5";
+import { PROBE_KEY, S3Store } from "./s3-store";
 
 const cfg: S3Config = {
   endpoint: "http://127.0.0.1:9000",
@@ -169,15 +170,6 @@ describe("S3Store devices", () => {
     expect(await s.describeDevices()).toEqual([{ id: "a", label: "a", pushedAt: "" }]);
   });
 
-  it("delete ignores 404 but not NoSuchBucket", async () => {
-    const { s, requests } = store(() => ({ status: 404, body: "" }));
-    await s.deleteDevice("a");
-    expect(requests.map((r) => r.method)).toEqual(["DELETE", "DELETE"]);
-
-    const { s: s2 } = store(() => ({ status: 404, body: `HTTP 404: ${errXml("NoSuchBucket")}` }));
-    await expect(s2.deleteDevice("a")).rejects.toMatchObject({ kind: "not_found" });
-  });
-
   it("maps a signature failure to auth", async () => {
     const { s } = store(() => ({ status: 403, body: `HTTP 403: ${errXml("SignatureDoesNotMatch")}` }));
     await expect(s.getDevice("a")).rejects.toMatchObject({ kind: "auth" });
@@ -189,16 +181,59 @@ describe("S3Store devices", () => {
     await expect(s.getDevice("bad/id")).rejects.toMatchObject({ kind: "other" });
   });
 
-  it("GET and DELETE never send a body; PUT sends exactly the signed body", async () => {
+  it("GET never sends a body; PUT sends exactly the signed body", async () => {
     const { s, requests } = store(() => ({ status: 200 }));
     await s.getDevice("a");
-    await s.deleteDevice("a");
     await s.putDevice("a", "BLOB", { label: "L", pushedAt: "t" });
     expect(requests[0].body).toBeUndefined();
-    expect(requests[1].body).toBeUndefined();
-    expect(requests[2].body).toBeUndefined();
-    expect(requests[3].body).toBe("BLOB");
-    expect(requests[4].body).toBe(JSON.stringify({ label: "L", pushedAt: "t" }));
+    expect(requests[1].body).toBe("BLOB");
+    expect(requests[2].body).toBe(JSON.stringify({ label: "L", pushedAt: "t" }));
+  });
+});
+
+const deleteBody = (...keys: string[]) =>
+  `<?xml version="1.0" encoding="UTF-8"?><Delete><Quiet>true</Quiet>${keys.map((k) => `<Object><Key>${k}</Key></Object>`).join("")}</Delete>`;
+
+describe("S3Store delete", () => {
+  it("deletes a device's blob and metadata in one signed DeleteObjects POST", async () => {
+    const { s, requests } = store(() => ({ status: 200, body: "<DeleteResult></DeleteResult>" }));
+    await s.deleteDevice("a");
+    expect(requests).toHaveLength(1);
+    const [r] = requests;
+    expect(r.method).toBe("POST");
+    expect(r.url).toBe("http://127.0.0.1:9000/vault?delete=");
+    expect(r.body).toBe(deleteBody("team/devices/a.b64", "team/devices/a.json"));
+    expect(r.headers["content-md5"]).toBe(md5Base64(r.body!));
+    expect(r.headers["content-type"]).toBe("application/xml");
+    expect(r.headers.authorization).toContain("SignedHeaders=content-md5;content-type;host;x-amz-content-sha256;x-amz-date,");
+  });
+
+  it("targets the bucket host root when virtual-hosted and XML-escapes keys", async () => {
+    const { s, requests } = store(() => ({ status: 200, body: "<DeleteResult/>" }), {
+      endpoint: "https://s3.eu-west-3.amazonaws.com",
+      addressing: "virtual",
+      prefix: "a&b<c>'\"",
+    });
+    await s.deleteDevice("a");
+    expect(requests[0].url).toBe("https://vault.s3.eu-west-3.amazonaws.com/?delete=");
+    expect(requests[0].body).toBe(
+      deleteBody("a&amp;b&lt;c&gt;&apos;&quot;/devices/a.b64", "a&amp;b&lt;c&gt;&apos;&quot;/devices/a.json"),
+    );
+  });
+
+  it("throws the mapped kind when the 200 DeleteResult reports a failed key", async () => {
+    const body = `<DeleteResult><Error><Key>team/devices/a.json</Key><Code>AccessDenied</Code><Message>Access Denied</Message></Error></DeleteResult>`;
+    const { s } = store(() => ({ status: 200, body }));
+    await expect(s.deleteDevice("a")).rejects.toMatchObject({ kind: "auth" });
+
+    const other = `<DeleteResult><Error><Key>team/devices/a.b64</Key><Code>InternalError</Code><Message>boom</Message></Error></DeleteResult>`;
+    const { s: s2 } = store(() => ({ status: 200, body: other }));
+    await expect(s2.deleteDevice("a")).rejects.toMatchObject({ kind: "other", message: expect.stringContaining("InternalError") });
+  });
+
+  it("maps a missing bucket to not_found", async () => {
+    const { s } = store(() => ({ status: 404, body: `HTTP 404: ${errXml("NoSuchBucket")}` }));
+    await expect(s.deleteDevice("a")).rejects.toMatchObject({ kind: "not_found" });
   });
 });
 
@@ -207,5 +242,43 @@ describe("S3Store probe", () => {
     const { s } = store((r) => (r.method === "PUT" ? { status: 200 } : { status: 403, body: `HTTP 403: ${errXml("AccessDenied")}` }));
     await expect(s.probe()).rejects.toThrow(/^Read test failed: /);
     await expect(s.probe()).rejects.toMatchObject({ kind: "auth" });
+  });
+});
+
+describe("S3Store never triggers a null-body status", () => {
+  it("probe deletes through DeleteObjects", async () => {
+    const { s, requests } = store((r) => (r.method === "GET" ? { status: 200, body: "ok" } : { status: 200 }));
+    await s.probe();
+    expect(requests.map((r) => r.method)).toEqual(["PUT", "GET", "POST"]);
+    expect(requests[2].url).toBe("http://127.0.0.1:9000/vault?delete=");
+    expect(requests[2].body).toBe(deleteBody(`team/${PROBE_KEY}`));
+  });
+
+  it("no operation sends DELETE", async () => {
+    const objects = new Map<string, string>();
+    const { s, requests } = store((r) => {
+      const url = new URL(r.url);
+      if (r.method === "PUT") {
+        objects.set(url.pathname, r.body!);
+        return { status: 200 };
+      }
+      if (r.method === "POST") return { status: 200, body: "<DeleteResult/>" };
+      if (url.searchParams.has("list-type")) {
+        const keys = [...objects.keys()].filter((k) => k.endsWith(".b64")).map((k) => k.replace("/vault/", ""));
+        return {
+          status: 200,
+          body: `<ListBucketResult><IsTruncated>false</IsTruncated>${keys.map((k) => `<Contents><Key>${k}</Key><ETag>"1"</ETag></Contents>`).join("")}</ListBucketResult>`,
+        };
+      }
+      const hit = objects.get(url.pathname);
+      return hit === undefined ? { status: 404, body: `HTTP 404: ${errXml("NoSuchKey")}` } : { status: 200, body: hit };
+    });
+    await s.probe();
+    await s.createSalt(salt);
+    await s.putDevice("a", "BLOB", { label: "L", pushedAt: "t" });
+    expect(await s.describeDevices()).toEqual([{ id: "a", label: "L", pushedAt: "t" }]);
+    await s.deleteDevice("a");
+    expect(requests.length).toBeGreaterThan(5);
+    expect(requests.filter((r) => r.method !== "GET" && r.method !== "PUT" && r.method !== "POST")).toEqual([]);
   });
 });

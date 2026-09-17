@@ -1,8 +1,9 @@
 import { send, type Http, type HttpResult } from "../../shared/vault-sync/src/http";
 import { DEVICE_ID_RE, StoreError, type DeviceInfo, type DeviceVersion, type VaultStore } from "../../shared/vault-sync/src/store";
 import { normalizeEndpoint, normalizePrefix, validateBucket, type S3Config } from "./config";
+import { md5Base64 } from "./md5";
 import { toStoreError } from "./s3-errors";
-import { parseErrorBody, parseListObjects } from "./s3-xml";
+import { deleteErrors, escapeXml, parseErrorBody, parseListObjects } from "./s3-xml";
 import { canonicalQuery, encodeKeyPath, encodeRfc3986, signRequest } from "./sigv4";
 
 export const VAULT_KEY = "vault.json";
@@ -54,7 +55,7 @@ export class S3Store implements VaultStore {
     return send(this.http, `${this.endpoint.protocol}//${host}${path}${qs ? `?${qs}` : ""}`, {
       method,
       headers,
-      body: method === "PUT" ? body : undefined,
+      body: method === "GET" ? undefined : body,
     });
   }
 
@@ -78,9 +79,18 @@ export class S3Store implements VaultStore {
     if (!res.ok) throw toStoreError(res.status, res.body);
   }
 
-  private async remove(name: string) {
-    const res = await this.request("DELETE", this.key(name));
-    if (!res.ok && !this.isMissingObject(res)) throw toStoreError(res.status, res.body);
+  // Single-object DELETE answers 204, which released hosts' HTTP bridge cannot deliver.
+  private async deleteKeys(names: string[]) {
+    const objects = names.map((n) => `<Object><Key>${escapeXml(this.key(n))}</Key></Object>`).join("");
+    const body = `<?xml version="1.0" encoding="UTF-8"?><Delete><Quiet>true</Quiet>${objects}</Delete>`;
+    const res = await this.request("POST", null, {
+      query: [["delete", ""]],
+      body,
+      headers: { "content-md5": md5Base64(body), "content-type": "application/xml" },
+    });
+    if (!res.ok) throw toStoreError(res.status, res.body);
+    const [failed] = deleteErrors(res.body);
+    if (failed) throw toStoreError(res.status, failed);
   }
 
   async readSalt(): Promise<string | null> {
@@ -163,8 +173,7 @@ export class S3Store implements VaultStore {
   }
 
   async deleteDevice(id: string): Promise<void> {
-    await this.remove(`${DEVICES_DIR}${id}.b64`);
-    await this.remove(`${DEVICES_DIR}${id}.json`);
+    await this.deleteKeys([`${DEVICES_DIR}${id}.b64`, `${DEVICES_DIR}${id}.json`]);
   }
 
   async probe(): Promise<void> {
@@ -180,6 +189,6 @@ export class S3Store implements VaultStore {
     await step("Read", async () => {
       if ((await this.getText(PROBE_KEY)) !== "ok") throw new Error("the bucket did not return what was written");
     });
-    await step("Delete", () => this.remove(PROBE_KEY));
+    await step("Delete", () => this.deleteKeys([PROBE_KEY]));
   }
 }

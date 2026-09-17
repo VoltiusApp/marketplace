@@ -2,6 +2,12 @@ export type ListPage = { objects: { key: string; etag: string }[]; truncated: bo
 
 const ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" };
 
+const ESCAPES = Object.fromEntries(Object.entries(ENTITIES).map(([name, ch]) => [ch, `&${name};`]));
+
+export function escapeXml(s: string): string {
+  return s.replace(/[&<>"']/g, (ch) => ESCAPES[ch]);
+}
+
 function decodeXml(s: string): string {
   return s.replace(/&(#x[0-9a-f]+|#\d+|amp|lt|gt|quot|apos);/gi, (_, e: string) =>
     e[0] === "#"
@@ -26,4 +32,8 @@ export function parseListObjects(xml: string): ListPage {
 export function parseErrorBody(body: string): { code: string | null; message: string | null } {
   const xml = body.replace(/^HTTP \d{3}: /, "");
   return { code: tag(xml, "Code"), message: tag(xml, "Message") };
+}
+
+export function deleteErrors(xml: string): string[] {
+  return [...xml.matchAll(/<Error>[\s\S]*?<\/Error>/g)].map(([e]) => e);
 }

@@ -7,7 +7,15 @@ import { signRequest } from "../src/sigv4";
 declare const process: { env: Record<string, string | undefined> };
 
 const endpoint = process.env.MINIO_ENDPOINT;
-const http = { stream: (url: string, init?: RequestInit) => fetch(url, init) } as unknown as Http;
+const NULL_BODY_STATUSES = new Set([204, 205, 304]);
+const http = {
+  stream: async (url: string, init?: RequestInit) => {
+    const res = await fetch(url, init);
+    // Released hosts' bridge builds `new Response(body, { status })`, which throws for these.
+    if (NULL_BODY_STATUSES.has(res.status)) throw new Error(`${init?.method ?? "GET"} ${url} returned ${res.status}`);
+    return res;
+  },
+} as unknown as Http;
 const bucket = `vs-${Date.now()}`;
 const base = (): S3Config => ({
   endpoint: endpoint!,
@@ -66,6 +74,16 @@ describe.skipIf(!endpoint)("S3Store against MinIO", () => {
     await s.deleteDevice("dev-2");
     await s.deleteDevice("dev-2");
     expect(await s.getDevice("dev-2")).toBeNull();
+    expect((await s.listDevices()).map((d) => d.id)).toEqual(["dev-1"]);
+    expect((await s.describeDevices()).map((d) => d.id)).toEqual(["dev-1"]);
+  });
+
+  it("deletes keys that need XML escaping", async () => {
+    const s = new S3Store(http, { ...base(), prefix: "a&b<c>'\"" });
+    await s.putDevice("dev-x", "XXXX", { label: "X", pushedAt: "t" });
+    await s.deleteDevice("dev-x");
+    expect(await s.getDevice("dev-x")).toBeNull();
+    expect(await s.listDevices()).toEqual([]);
   });
 
   it("isolates prefixes", async () => {
@@ -76,6 +94,9 @@ describe.skipIf(!endpoint)("S3Store against MinIO", () => {
   it("maps a wrong secret to auth and a missing bucket to not_found", async () => {
     await expect(new S3Store(http, { ...base(), secretAccessKey: "wrong" }).listDevices()).rejects.toMatchObject({ kind: "auth" });
     await expect(new S3Store(http, { ...base(), bucket: "does-not-exist-vs" }).readSalt()).rejects.toMatchObject({
+      kind: "not_found",
+    });
+    await expect(new S3Store(http, { ...base(), bucket: "does-not-exist-vs" }).deleteDevice("dev-1")).rejects.toMatchObject({
       kind: "not_found",
     });
   });
