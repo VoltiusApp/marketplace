@@ -27,10 +27,44 @@ describe("normalizeEndpoint", () => {
 });
 
 describe("isPrivateHost", () => {
-  it.each(["localhost", "127.0.0.1", "10.2.3.4", "172.20.0.1", "192.168.0.9", "[::1]", "nas.local"])("%s is private", (h) =>
-    expect(isPrivateHost(h)).toBe(true),
-  );
-  it.each(["172.32.0.1", "8.8.8.8", "s3.amazonaws.com"])("%s is public", (h) => expect(isPrivateHost(h)).toBe(false));
+  it.each([
+    "localhost",
+    "127.0.0.1",
+    "10.2.3.4",
+    "172.20.0.1",
+    "192.168.0.9",
+    "[::1]",
+    "nas.local",
+    "100.64.0.1",
+    "100.101.102.103",
+    "100.127.255.254",
+    "169.254.10.20",
+    "[fc00::1]",
+    "[fd12:3456:789a::1]",
+    "[fe80::1]",
+    "[febf::1]",
+    "nas",
+    "minio.lan",
+    "nas.home.arpa",
+    "storage.internal",
+  ])("%s is private", (h) => expect(isPrivateHost(h)).toBe(true));
+  it.each([
+    "172.32.0.1",
+    "8.8.8.8",
+    "s3.amazonaws.com",
+    "100.63.255.255",
+    "100.128.0.1",
+    "169.253.0.1",
+    "[2001:db8::1]",
+    "[fe00::1]",
+    "[fec0::1]",
+    "[fb00::1]",
+    "plan.example",
+    "home.arpa.example.com",
+  ])("%s is public", (h) => expect(isPrivateHost(h)).toBe(false));
+  it("allows http:// for a Tailscale address", () => {
+    expect(normalizeEndpoint("http://100.100.1.2:9000")).toBe("http://100.100.1.2:9000");
+  });
 });
 
 describe("normalizePrefix", () => {

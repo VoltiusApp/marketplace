@@ -15,14 +15,24 @@ export type S3Config = {
 export const STORAGE_KEYS = ["s3Endpoint", "s3Region", "s3Bucket", "s3Prefix", "s3Addressing"] as const;
 export const VAULT_KEYS = ["s3AccessKeyId", "s3SecretAccessKey"] as const;
 
+const PRIVATE_SUFFIXES = [".local", ".lan", ".home.arpa", ".internal"];
+
 export function isPrivateHost(hostname: string): boolean {
   const h = hostname.toLowerCase().replace(/^\[|\]$/g, "");
-  if (h === "localhost" || h === "::1" || h.endsWith(".local")) return true;
+  if (h.includes(":")) return h === "::1" || /^f[cd][0-9a-f]{2}:/.test(h) || /^fe[89ab][0-9a-f]:/.test(h);
+  if (h === "localhost" || !h.includes(".") || PRIVATE_SUFFIXES.some((s) => h.endsWith(s))) return true;
   const m = /^(\d+)\.(\d+)\.\d+\.\d+$/.exec(h);
   if (!m) return false;
   const a = Number(m[1]);
   const b = Number(m[2]);
-  return a === 127 || a === 10 || (a === 192 && b === 168) || (a === 172 && b >= 16 && b <= 31);
+  return (
+    a === 127 ||
+    a === 10 ||
+    (a === 192 && b === 168) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 100 && b >= 64 && b <= 127) ||
+    (a === 169 && b === 254)
+  );
 }
 
 export function normalizeEndpoint(raw: string): string {
