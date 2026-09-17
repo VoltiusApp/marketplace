@@ -42,6 +42,13 @@ describe("S3Store addressing", () => {
     const { http } = fakeHttp(() => ({ status: 200 }));
     expect(() => new S3Store(http, { ...cfg, bucket: "AB" })).toThrow(/bucket/);
   });
+
+  it("percent-encodes a prefix and key with spaces and accents, and signs the encoded path", async () => {
+    const { s, requests } = store(() => ({ status: 200 }), { prefix: "team vault/é" });
+    await s.putDevice("dev-1.bak", "B", { label: "L", pushedAt: "t" });
+    expect(requests[0].url).toBe("http://127.0.0.1:9000/vault/team%20vault/%C3%A9/devices/dev-1.bak.b64");
+    expect(requests[0].headers.authorization).toMatch(/^AWS4-HMAC-SHA256 Credential=AK\//);
+  });
 });
 
 describe("S3Store salt", () => {
@@ -56,6 +63,21 @@ describe("S3Store salt", () => {
     });
     expect(await s.createSalt(salt)).toBe(salt);
     expect(requests[0].headers["if-none-match"]).toBe("*");
+  });
+
+  it("signs content-type and if-none-match, not just sends them", async () => {
+    let stored: string | null = null;
+    const { s, requests } = store((r) => {
+      if (r.method === "PUT") {
+        stored = r.body!;
+        return { status: 200 };
+      }
+      return { status: 200, body: stored! };
+    });
+    await s.createSalt(salt);
+    expect(requests[0].headers.authorization).toContain(
+      "SignedHeaders=content-type;host;if-none-match;x-amz-content-sha256;x-amz-date",
+    );
   });
 
   it("keeps the existing salt on 412", async () => {
@@ -166,11 +188,24 @@ describe("S3Store devices", () => {
     await expect(s.putDevice("bad/id", "B", { label: "L", pushedAt: "t" })).rejects.toMatchObject({ kind: "other" });
     await expect(s.getDevice("bad/id")).rejects.toMatchObject({ kind: "other" });
   });
+
+  it("GET and DELETE never send a body; PUT sends exactly the signed body", async () => {
+    const { s, requests } = store(() => ({ status: 200 }));
+    await s.getDevice("a");
+    await s.deleteDevice("a");
+    await s.putDevice("a", "BLOB", { label: "L", pushedAt: "t" });
+    expect(requests[0].body).toBeUndefined();
+    expect(requests[1].body).toBeUndefined();
+    expect(requests[2].body).toBeUndefined();
+    expect(requests[3].body).toBe("BLOB");
+    expect(requests[4].body).toBe(JSON.stringify({ label: "L", pushedAt: "t" }));
+  });
 });
 
 describe("S3Store probe", () => {
-  it("names the failing step", async () => {
+  it("names the failing step and preserves the StoreError kind", async () => {
     const { s } = store((r) => (r.method === "PUT" ? { status: 200 } : { status: 403, body: `HTTP 403: ${errXml("AccessDenied")}` }));
     await expect(s.probe()).rejects.toThrow(/^Read test failed: /);
+    await expect(s.probe()).rejects.toMatchObject({ kind: "auth" });
   });
 });
