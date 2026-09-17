@@ -1,5 +1,5 @@
 {
   "name": "voltius-marketplace",
   "private": true,
-  "workspaces": ["shared/vault-sync", "cloudflare-sync"]
+  "workspaces": ["shared/vault-sync", "cloudflare-sync", "s3-sync"]
 }

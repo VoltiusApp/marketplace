@@ -5,6 +5,7 @@
 // drops a specifier, this fails in CI instead of in a plugin author's editor.
 // Falls back to the pinned copy when offline.
 import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 const SRC =
   "https://raw.githubusercontent.com/VoltiusApp/voltius/main/src/plugins/hostSpecifiers.ts";
@@ -35,7 +36,7 @@ async function hostSpecifiers() {
 }
 
 const allowed = new Set(await hostSpecifiers());
-const bundle = readFileSync(new URL("../index.js", import.meta.url), "utf8");
+const bundle = readFileSync(resolve(process.cwd(), process.argv[2] ?? "index.js"), "utf8");
 const imported = new Set(
   [...bundle.matchAll(/from\s*"([^"]+)"/g)]
     .map((m) => m[1])
