@@ -103,10 +103,13 @@ describe("S3Store devices", () => {
     expect(await s.describeDevices()).toEqual([{ id: "a", label: "a", pushedAt: "" }]);
   });
 
-  it("delete ignores 404", async () => {
+  it("delete ignores 404 but not NoSuchBucket", async () => {
     const { s, requests } = store(() => ({ status: 404, body: "" }));
     await s.deleteDevice("a");
     expect(requests.map((r) => r.method)).toEqual(["DELETE", "DELETE"]);
+
+    const { s: s2 } = store(() => ({ status: 404, body: `HTTP 404: ${errXml("NoSuchBucket")}` }));
+    await expect(s2.deleteDevice("a")).rejects.toMatchObject({ kind: "not_found" });
   });
 
   it("maps a signature failure to auth", async () => {

@@ -61,10 +61,14 @@ export class S3Store implements VaultStore {
     return `${this.prefix}${name}`;
   }
 
+  private isMissingObject(res: HttpResult): boolean {
+    return res.status === 404 && parseErrorBody(res.body).code !== "NoSuchBucket";
+  }
+
   private async getText(name: string): Promise<string | null> {
     const res = await this.request("GET", this.key(name));
     if (res.ok) return res.body;
-    if (res.status === 404 && parseErrorBody(res.body).code !== "NoSuchBucket") return null;
+    if (this.isMissingObject(res)) return null;
     throw toStoreError(res.status, res.body);
   }
 
@@ -75,7 +79,7 @@ export class S3Store implements VaultStore {
 
   private async remove(name: string) {
     const res = await this.request("DELETE", this.key(name));
-    if (!res.ok && res.status !== 404) throw toStoreError(res.status, res.body);
+    if (!res.ok && !this.isMissingObject(res)) throw toStoreError(res.status, res.body);
   }
 
   async readSalt(): Promise<string | null> {

@@ -526,10 +526,13 @@ var S3Store = class {
   key(name) {
     return `${this.prefix}${name}`;
   }
+  isMissingObject(res) {
+    return res.status === 404 && parseErrorBody(res.body).code !== "NoSuchBucket";
+  }
   async getText(name) {
     const res = await this.request("GET", this.key(name));
     if (res.ok) return res.body;
-    if (res.status === 404 && parseErrorBody(res.body).code !== "NoSuchBucket") return null;
+    if (this.isMissingObject(res)) return null;
     throw toStoreError(res.status, res.body);
   }
   async putText(name, body, contentType, headers = {}) {
@@ -538,7 +541,7 @@ var S3Store = class {
   }
   async remove(name) {
     const res = await this.request("DELETE", this.key(name));
-    if (!res.ok && res.status !== 404) throw toStoreError(res.status, res.body);
+    if (!res.ok && !this.isMissingObject(res)) throw toStoreError(res.status, res.body);
   }
   async readSalt() {
     const text = await this.getText(VAULT_KEY);
