@@ -1,7 +1,8 @@
 import { StoreError } from "../../shared/vault-sync/src/store";
 import { parseErrorBody } from "./s3-xml";
 
-const AUTH_CODES = new Set(["InvalidAccessKeyId", "SignatureDoesNotMatch", "AccessDenied"]);
+const AUTH_CODES = new Set(["InvalidAccessKeyId", "SignatureDoesNotMatch", "AccessDenied", "AllAccessDisabled", "AccountProblem"]);
+const WRONG_REGION_CODES = new Set(["AuthorizationHeaderMalformed", "PermanentRedirect"]);
 
 export function toStoreError(status: number, body: string): StoreError {
   const { code, message } = parseErrorBody(body);
@@ -13,6 +14,9 @@ export function toStoreError(status: number, body: string): StoreError {
   }
   if (code === "NoSuchBucket") {
     return new StoreError("not_found", "Bucket not found — check the bucket name, region and endpoint.", status);
+  }
+  if (code !== null && WRONG_REGION_CODES.has(code)) {
+    return new StoreError("not_found", "This bucket lives in another region or behind another endpoint — check the region and endpoint.", status);
   }
   if (status === 412 || status === 409) return new StoreError("conflict", "The object changed while writing it", status);
   return new StoreError("other", code ? `${code}: ${message ?? `HTTP ${status}`}` : `HTTP ${status}`, status);
