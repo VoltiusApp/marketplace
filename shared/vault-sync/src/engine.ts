@@ -23,6 +23,11 @@ export type VaultSyncEngine = ReturnType<typeof createVaultSyncEngine>;
 export const MAX_SYNC_CONFLICT_RETRIES = 3;
 export const WRONG_PASSPHRASE_MSG = "The passphrase does not match the remote vault — check it and try again";
 const PASSPHRASE_KEY = "passphrase";
+const PASSPHRASE_REQUIRED_MSG = "A passphrase is required";
+
+function isComplete(stored: readonly (string | null)[], secrets: readonly (string | null)[]): boolean {
+  return stored.every((v) => v !== null) && secrets.every(Boolean);
+}
 
 export function createVaultSyncEngine({ api, storageKeys, vaultKeys, openStore }: EngineOptions) {
   const secretKeys = [...vaultKeys, PASSPHRASE_KEY];
@@ -68,7 +73,7 @@ export function createVaultSyncEngine({ api, storageKeys, vaultKeys, openStore }
 
   async function isConfigured(): Promise<boolean> {
     const [stored, secrets] = await readConfig();
-    return stored.every((v) => v !== null) && secrets.every(Boolean);
+    return isComplete(stored, secrets);
   }
 
   async function getDeviceId(): Promise<string> {
@@ -101,7 +106,7 @@ export function createVaultSyncEngine({ api, storageKeys, vaultKeys, openStore }
 
   async function encKey(salt: string): Promise<string> {
     const passphrase = await api.vault.get(PASSPHRASE_KEY);
-    if (!passphrase) throw new Error("A passphrase is required");
+    if (!passphrase) throw new Error(PASSPHRASE_REQUIRED_MSG);
     return api.crypto.deriveKey(passphrase, salt);
   }
 
@@ -120,7 +125,7 @@ export function createVaultSyncEngine({ api, storageKeys, vaultKeys, openStore }
           return prev === null ? api.vault.delete(k) : api.vault.set(k, prev);
         }),
       ]);
-      markConfigured(prevStored.every((v) => v !== null) && prevSecrets.every(Boolean));
+      markConfigured(isComplete(prevStored, prevSecrets));
     };
   }
 
@@ -147,11 +152,13 @@ export function createVaultSyncEngine({ api, storageKeys, vaultKeys, openStore }
   }
 
   async function detectVault(store: VaultStore): Promise<VaultState> {
-    return (await store.readSalt()) ? "exists" : "empty";
+    const salt = await store.readSalt();
+    if (!salt) return "empty";
+    return (await store.listDevices()).length > 0 ? "exists" : "empty";
   }
 
   async function createVault(store: VaultStore, passphrase: string, values: ConfigValues) {
-    if (!passphrase) throw new Error("A passphrase is required");
+    if (!passphrase) throw new Error(PASSPHRASE_REQUIRED_MSG);
     if ((await detectVault(store)) === "exists") {
       throw new Error("A remote vault already exists — link it instead");
     }
@@ -166,7 +173,7 @@ export function createVaultSyncEngine({ api, storageKeys, vaultKeys, openStore }
   }
 
   async function linkVault(store: VaultStore, passphrase: string, values: ConfigValues) {
-    if (!passphrase) throw new Error("A passphrase is required");
+    if (!passphrase) throw new Error(PASSPHRASE_REQUIRED_MSG);
     const salt = await store.readSalt();
     if (!salt) throw new StoreError("not_found", "No vault exists here yet — create one instead");
     const rollback = await writeConfig(values, passphrase);

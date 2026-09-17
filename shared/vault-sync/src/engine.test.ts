@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createVaultSyncEngine, WRONG_PASSPHRASE_MSG } from "./engine";
+import { createVaultSyncEngine, MAX_SYNC_CONFLICT_RETRIES, WRONG_PASSPHRASE_MSG } from "./engine";
 import { StoreError } from "./store";
 import { fakeApi, MemoryStore } from "./testing/fakes";
 
@@ -45,10 +45,11 @@ describe("createVault", () => {
   it("refuses when a vault already exists", async () => {
     const { engine, store } = setup();
     store.salt = "a".repeat(32);
+    await seedOtherDevice(store, "pw");
     await expect(engine.createVault(store, "pw", values)).rejects.toThrow(/already exists/);
   });
 
-  it("rolls the config back when the first push fails", async () => {
+  it("rolls the config back when the first push fails, and a retry reuses the orphan salt", async () => {
     const store = new MemoryStore();
     store.putDevice = async () => {
       throw new Error("boom");
@@ -59,6 +60,28 @@ describe("createVault", () => {
     expect(vault.has("token")).toBe(false);
     expect(vault.has("passphrase")).toBe(false);
     expect(engine.getState().configured).toBe(false);
+
+    const orphanSalt = store.salt;
+    expect(orphanSalt).toMatch(/^[0-9a-f]{32}$/);
+    store.putDevice = MemoryStore.prototype.putDevice.bind(store);
+    await engine.createVault(store, "pw", values);
+    expect(store.salt).toBe(orphanSalt);
+    expect(engine.getState().configured).toBe(true);
+  });
+});
+
+describe("detectVault", () => {
+  it("treats a stored salt with no devices as empty, not existing", async () => {
+    const { engine, store } = setup();
+    store.salt = "c".repeat(32);
+    expect(await engine.detectVault(store)).toBe("empty");
+  });
+
+  it("treats a stored salt with at least one device as existing", async () => {
+    const { engine, store } = setup();
+    store.salt = "c".repeat(32);
+    await seedOtherDevice(store, "pw");
+    expect(await engine.detectVault(store)).toBe("exists");
   });
 });
 
@@ -91,11 +114,16 @@ describe("syncNow", () => {
   it("imports only other devices whose version changed", async () => {
     const { engine, store, imported } = setup();
     await engine.createVault(store, "pw", values);
+    await engine.syncNow();
+    expect(imported).toHaveLength(0);
+
     await seedOtherDevice(store, "pw");
     await engine.syncNow();
-    expect(imported).toHaveLength(1);
+    expect(imported).toEqual([[store.devices.get("other")!.blob]]);
+
     await engine.syncNow();
     expect(imported).toHaveLength(1);
+
     await seedOtherDevice(store, "pw");
     await engine.syncNow();
     expect(imported).toHaveLength(2);
@@ -106,6 +134,28 @@ describe("syncNow", () => {
     const { engine, store } = setup();
     await engine.createVault(store, "pw", values);
     store.failNext = [new StoreError("conflict", "etag"), new StoreError("conflict", "etag")];
+    await engine.syncNow();
+    expect(engine.getState().status).toBe("success");
+  });
+
+  it("gives up after exhausting the conflict retry budget", async () => {
+    const { engine, store } = setup();
+    await engine.createVault(store, "pw", values);
+    store.failNext = Array.from({ length: MAX_SYNC_CONFLICT_RETRIES + 1 }, () => new StoreError("conflict", "etag"));
+    await engine.syncNow();
+    expect(engine.getState()).toMatchObject({ status: "error", error: "Remote changed during sync — try again" });
+  });
+
+  it("retries a conflict raised from putDevice, not just readSalt, and still succeeds", async () => {
+    const { engine, store } = setup();
+    await engine.createVault(store, "pw", values);
+    const originalPutDevice = store.putDevice.bind(store);
+    let calls = 0;
+    store.putDevice = async (id: string, blob: string, info: { label: string; pushedAt: string }) => {
+      calls++;
+      if (calls === 1) throw new StoreError("conflict", "etag");
+      return originalPutDevice(id, blob, info);
+    };
     await engine.syncNow();
     expect(engine.getState().status).toBe("success");
   });
