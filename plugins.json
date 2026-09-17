@@ -214,5 +214,32 @@
     ],
     "icon": "simple-icons:cloudflare",
     "theme": false
+  },
+  {
+    "id": "plugin-s3-sync",
+    "name": "S3 Sync",
+    "author": "voltius",
+    "description": "Encrypted vault sync through any S3-compatible bucket — AWS S3, Cloudflare R2, Backblaze B2, Wasabi, MinIO and more. No server to run; data is encrypted on this device first.",
+    "repo": "https://raw.githubusercontent.com/voltiusApp/marketplace/main/s3-sync",
+    "version": "0.1.0",
+    "hash": "7b593b285b7fede3040e8d92e61a0b2afb2193574650d29238500f1ff4995fb7",
+    "permissions": [
+      "vault:read",
+      "vault:write",
+      "storage",
+      "http",
+      "crypto:derive",
+      "ui",
+      "sync:write",
+      "notifications",
+      "settings-page"
+    ],
+    "minAppVersion": "0.37.0",
+    "tags": [
+      "sync",
+      "s3"
+    ],
+    "icon": "lucide:database",
+    "theme": false
   }
 ]
