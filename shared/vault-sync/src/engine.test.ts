@@ -104,6 +104,16 @@ describe("linkVault", () => {
     expect(storage.has("endpoint")).toBe(false);
   });
 
+  it("surfaces the original error when the rollback itself fails", async () => {
+    const { engine, store, api } = setup();
+    store.salt = "b".repeat(32);
+    await seedOtherDevice(store, "right");
+    api.storage.delete = async () => {
+      throw new Error("rollback failed");
+    };
+    await expect(engine.linkVault(store, "wrong", values)).rejects.toThrow(WRONG_PASSPHRASE_MSG);
+  });
+
   it("fails when no vault exists", async () => {
     const { engine, store } = setup();
     await expect(engine.linkVault(store, "pw", values)).rejects.toMatchObject({ kind: "not_found" });

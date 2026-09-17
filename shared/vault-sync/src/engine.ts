@@ -129,6 +129,17 @@ export function createVaultSyncEngine({ api, storageKeys, vaultKeys, openStore }
     };
   }
 
+  async function withConfig(values: ConfigValues, passphrase: string, fn: () => Promise<void>) {
+    const rollback = await writeConfig(values, passphrase);
+    try {
+      await fn();
+      markConfigured(true);
+    } catch (err) {
+      await rollback().catch(() => {});
+      throw err;
+    }
+  }
+
   async function pushTo(store: VaultStore, salt: string) {
     const [deviceId, label] = await Promise.all([getDeviceId(), getDeviceLabel()]);
     const blob = await api.sync.exportState(await encKey(salt), deviceId);
@@ -162,22 +173,14 @@ export function createVaultSyncEngine({ api, storageKeys, vaultKeys, openStore }
     if ((await detectVault(store)) === "exists") {
       throw new Error("A remote vault already exists — link it instead");
     }
-    const rollback = await writeConfig(values, passphrase);
-    try {
-      await pushTo(store, await store.createSalt(generateSaltHex()));
-      markConfigured(true);
-    } catch (err) {
-      await rollback();
-      throw err;
-    }
+    await withConfig(values, passphrase, async () => pushTo(store, await store.createSalt(generateSaltHex())));
   }
 
   async function linkVault(store: VaultStore, passphrase: string, values: ConfigValues) {
     if (!passphrase) throw new Error(PASSPHRASE_REQUIRED_MSG);
     const salt = await store.readSalt();
     if (!salt) throw new StoreError("not_found", "No vault exists here yet — create one instead");
-    const rollback = await writeConfig(values, passphrase);
-    try {
+    await withConfig(values, passphrase, async () => {
       const key = await encKey(salt);
       for (const d of await store.listDevices()) {
         const blob = await store.getDevice(d.id);
@@ -190,11 +193,7 @@ export function createVaultSyncEngine({ api, storageKeys, vaultKeys, openStore }
         seenVersions[d.id] = d.version;
         break;
       }
-      markConfigured(true);
-    } catch (err) {
-      await rollback();
-      throw err;
-    }
+    });
   }
 
   function stopPoll() {
