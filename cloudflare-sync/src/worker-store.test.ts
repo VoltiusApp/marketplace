@@ -23,6 +23,22 @@ describe("WorkerStore", () => {
     expect(await new WorkerStore(missing.http, URL_, "t").readSalt()).toBeNull();
   });
 
+  it("keeps an existing salt when creating one", async () => {
+    const { http, requests } = fakeHttp(() => json(200, manifest));
+    expect(await new WorkerStore(http, URL_, "t").createSalt("d".repeat(32))).toBe(manifest.salt);
+    expect(requests.some((r) => r.method === "PUT")).toBe(false);
+  });
+
+  it("writes a fresh manifest when none exists", async () => {
+    const salt = "d".repeat(32);
+    const { http, requests } = fakeHttp((req) =>
+      req.method === "PUT" ? json(200, JSON.parse(req.body!)) : json(404, { error: "not_found", message: "nope" }),
+    );
+    expect(await new WorkerStore(http, URL_, "t").createSalt(salt)).toBe(salt);
+    const put = requests.find((r) => r.method === "PUT")!;
+    expect(JSON.parse(put.body!)).toEqual({ schema: 1, salt, devices: [] });
+  });
+
   it("maps 401 to an auth StoreError", async () => {
     const { http } = fakeHttp(() => json(401, { error: "unauthorized", message: "bad" }));
     const err = await new WorkerStore(http, URL_, "t").listDevices().catch((e) => e);

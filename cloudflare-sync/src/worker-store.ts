@@ -59,6 +59,8 @@ export class WorkerStore implements VaultStore {
   }
 
   async createSalt(salt: string): Promise<string> {
+    const existing = await this.readSalt();
+    if (existing) return existing;
     return this.guard(async () => {
       const written = await putManifest(this.http, this.workerUrl, this.token, { schema: 1, salt, devices: [] });
       return written.salt;
