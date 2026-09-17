@@ -104,16 +104,21 @@ export class S3Store implements VaultStore {
   }
 
   async createSalt(salt: string): Promise<string> {
-    let putErr: StoreError | null = null;
+    const body = JSON.stringify({ schema: 1, salt });
     try {
-      await this.putText(VAULT_KEY, JSON.stringify({ schema: 1, salt }), "application/json", { "if-none-match": "*" });
+      await this.putText(VAULT_KEY, body, "application/json", { "if-none-match": "*" });
     } catch (err) {
       if (!(err instanceof StoreError && (err.kind === "conflict" || err.kind === "other"))) throw err;
-      putErr = err;
+      const existing = await this.readSalt().catch(() => {
+        throw err;
+      });
+      if (existing) return existing;
+      const conditionalRejected = err.kind === "other" && (err.status === 400 || err.status === 501);
+      if (!conditionalRejected) throw err;
+      await this.putText(VAULT_KEY, body, "application/json");
     }
-    const stored = putErr ? await this.readSalt().catch(() => null) : await this.readSalt();
+    const stored = await this.readSalt();
     if (stored) return stored;
-    if (putErr) throw putErr;
     throw new StoreError("other", "The vault file could not be read back after writing it");
   }
 

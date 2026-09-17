@@ -101,13 +101,42 @@ describe("S3Store salt", () => {
     expect(await s.createSalt(salt)).toBe(existing);
   });
 
-  it("rethrows the original PUT error when the read-back after a non-conflict failure finds nothing", async () => {
-    const { s } = store((r) =>
+  it.each([
+    [400, "InvalidArgument"],
+    [501, "NotImplemented"],
+  ])("retries once without If-None-Match when the provider rejects it with %i %s", async (status, code) => {
+    let stored: string | null = null;
+    const { s, requests } = store((r) => {
+      if (r.method === "PUT") {
+        if (r.headers["if-none-match"]) return { status, body: `HTTP ${status}: ${errXml(code)}` };
+        stored = r.body!;
+        return { status: 200 };
+      }
+      return stored === null ? { status: 404, body: `HTTP 404: ${errXml("NoSuchKey")}` } : { status: 200, body: stored };
+    });
+    expect(await s.createSalt(salt)).toBe(salt);
+    const puts = requests.filter((r) => r.method === "PUT");
+    expect(puts).toHaveLength(2);
+    expect(puts[1].headers["if-none-match"]).toBeUndefined();
+    expect(puts[1].headers.authorization).not.toContain("if-none-match");
+  });
+
+  it("rethrows a non-conflict PUT error with another status when the read-back finds nothing", async () => {
+    const { s, requests } = store((r) =>
       r.method === "PUT"
-        ? { status: 501, body: `HTTP 501: ${errXml("NotImplemented")}` }
+        ? { status: 500, body: `HTTP 500: ${errXml("InternalError")}` }
         : { status: 404, body: `HTTP 404: ${errXml("NoSuchKey")}` },
     );
-    await expect(s.createSalt(salt)).rejects.toMatchObject({ kind: "other", status: 501 });
+    await expect(s.createSalt(salt)).rejects.toMatchObject({ kind: "other", status: 500 });
+    expect(requests.filter((r) => r.method === "PUT")).toHaveLength(1);
+  });
+
+  it("never retries over a vault.json that is not a Voltius vault", async () => {
+    const { s, requests } = store((r) =>
+      r.method === "PUT" ? { status: 400, body: `HTTP 400: ${errXml("InvalidArgument")}` } : { status: 200, body: "{}" },
+    );
+    await expect(s.createSalt(salt)).rejects.toMatchObject({ kind: "other", status: 400 });
+    expect(requests.filter((r) => r.method === "PUT")).toHaveLength(1);
   });
 
   it("propagates a non-conflict, non-recoverable PUT error instead of swallowing it", async () => {
