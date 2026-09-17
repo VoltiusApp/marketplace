@@ -87,10 +87,24 @@ describe("displayPrefix", () => {
 });
 
 describe("validateBucket", () => {
+  const target = (bucket: string, addressing: "path" | "virtual" = "path", endpoint = "https://s3.example.com") => ({
+    bucket,
+    addressing,
+    endpoint,
+  });
   it("accepts S3 bucket names and rejects others", () => {
-    expect(() => validateBucket("voltius-vault.sync")).not.toThrow();
-    expect(() => validateBucket("Bad_Bucket")).toThrow();
-    expect(() => validateBucket("ab")).toThrow();
+    expect(() => validateBucket(target("voltius-vault.sync"))).not.toThrow();
+    expect(() => validateBucket(target("Bad_Bucket"))).toThrow();
+    expect(() => validateBucket(target("ab"))).toThrow();
+  });
+  it("rejects a dotted bucket in virtual-hosted style over https", () => {
+    expect(() => validateBucket(target("voltius.vault", "virtual"))).toThrow(/dots.*virtual-hosted/);
+    expect(() => validateBucket(target("voltius.vault", "virtual", " HTTPS://s3.example.com"))).toThrow(/dots/);
+  });
+  it("allows a dotted bucket with path style or plain http, and an undotted one virtual-hosted", () => {
+    expect(() => validateBucket(target("voltius.vault", "path"))).not.toThrow();
+    expect(() => validateBucket(target("voltius.vault", "virtual", "http://localhost:9000"))).not.toThrow();
+    expect(() => validateBucket(target("voltius-vault", "virtual"))).not.toThrow();
   });
 });
 

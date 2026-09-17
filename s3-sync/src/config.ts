@@ -71,9 +71,14 @@ export function displayPrefix(prefix: string): string {
 
 const BUCKET_RE = /^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/;
 
-export function validateBucket(bucket: string): void {
+export function validateBucket({ bucket, addressing, endpoint }: Pick<S3Config, "bucket" | "addressing" | "endpoint">): void {
   if (!BUCKET_RE.test(bucket)) {
     throw new Error("s3-sync: bucket names are 3–63 lowercase letters, digits, dots or hyphens");
+  }
+  if (addressing === "virtual" && bucket.includes(".") && /^https:/i.test(endpoint.trim())) {
+    throw new Error(
+      "s3-sync: a bucket name with dots does not work over https:// in virtual-hosted style — untick the hostname option or use a bucket without dots",
+    );
   }
 }
 

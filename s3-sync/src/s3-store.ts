@@ -22,7 +22,7 @@ export class S3Store implements VaultStore {
     private readonly cfg: S3Config,
     private readonly now: () => Date = () => new Date(),
   ) {
-    validateBucket(cfg.bucket);
+    validateBucket(cfg);
     this.endpoint = new URL(normalizeEndpoint(cfg.endpoint));
     this.prefix = normalizePrefix(cfg.prefix);
   }

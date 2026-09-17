@@ -44,6 +44,13 @@ describe("S3Store addressing", () => {
     expect(() => new S3Store(http, { ...cfg, bucket: "AB" })).toThrow(/bucket/);
   });
 
+  it("rejects a dotted bucket with virtual-hosted https", () => {
+    const { http } = fakeHttp(() => ({ status: 200 }));
+    expect(
+      () => new S3Store(http, { ...cfg, bucket: "a.b", addressing: "virtual", endpoint: "https://s3.eu-west-3.amazonaws.com" }),
+    ).toThrow(/dots/);
+  });
+
   it("percent-encodes a prefix and key with spaces and accents, and signs the encoded path", async () => {
     const { s, requests } = store(() => ({ status: 200 }), { prefix: "team vault/é" });
     await s.putDevice("dev-1.bak", "B", { label: "L", pushedAt: "t" });

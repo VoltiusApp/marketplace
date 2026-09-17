@@ -35,7 +35,7 @@ export function SetupWizard({ api, engine, onDone }: { api: PluginAPI; engine: V
 
   const connect = () =>
     run("Testing the bucket…", async () => {
-      validateBucket(bucket.trim());
+      validateBucket({ bucket: bucket.trim(), addressing, endpoint });
       const cfg: S3Config = {
         endpoint: normalizeEndpoint(endpoint),
         region: region.trim(),
