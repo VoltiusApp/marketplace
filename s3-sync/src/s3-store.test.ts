@@ -139,6 +139,14 @@ describe("S3Store devices", () => {
     expect(await s.describeDevices()).toEqual([{ id: "a", label: "a", pushedAt: "" }]);
   });
 
+  it("falls back per-device when a device's metadata GET fails with a real error, not just 404", async () => {
+    const list = `<ListBucketResult><IsTruncated>false</IsTruncated><Contents><Key>team/devices/a.b64</Key><ETag>"1"</ETag></Contents></ListBucketResult>`;
+    const { s } = store((r) =>
+      r.url.includes("list-type") ? { status: 200, body: list } : { status: 500, body: `HTTP 500: ${errXml("InternalError")}` },
+    );
+    expect(await s.describeDevices()).toEqual([{ id: "a", label: "a", pushedAt: "" }]);
+  });
+
   it("delete ignores 404 but not NoSuchBucket", async () => {
     const { s, requests } = store(() => ({ status: 404, body: "" }));
     await s.deleteDevice("a");

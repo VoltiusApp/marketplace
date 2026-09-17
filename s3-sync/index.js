@@ -591,8 +591,8 @@ var S3Store = class {
     const devices = await this.listDevices();
     return Promise.all(
       devices.map(async ({ id }) => {
-        const text = await this.getText(`${DEVICES_DIR}${id}.json`);
         try {
+          const text = await this.getText(`${DEVICES_DIR}${id}.json`);
           const meta = JSON.parse(text ?? "");
           return {
             id,
