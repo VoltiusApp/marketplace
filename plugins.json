@@ -222,7 +222,7 @@
     "description": "Encrypted vault sync through any S3-compatible bucket — AWS S3, Cloudflare R2, Backblaze B2, Wasabi, MinIO and more. No server to run; data is encrypted on this device first.",
     "repo": "https://raw.githubusercontent.com/voltiusApp/marketplace/main/s3-sync",
     "version": "0.1.0",
-    "hash": "24d932863b0e29b6ac3d83d458590f2121bac3d43a3d2711494c02a736b921d9",
+    "hash": "be1816c3d926c8eb76691c22e68aad04cdcb4d7559636d92138d3741316b83b3",
     "permissions": [
       "vault:read",
       "vault:write",

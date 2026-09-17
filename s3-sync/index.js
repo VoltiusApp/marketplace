@@ -293,14 +293,16 @@ function createVaultSyncEngine({ api, storageKeys, vaultKeys, openStore }) {
 // src/config.ts
 var STORAGE_KEYS = ["s3Endpoint", "s3Region", "s3Bucket", "s3Prefix", "s3Addressing"];
 var VAULT_KEYS = ["s3AccessKeyId", "s3SecretAccessKey"];
+var PRIVATE_SUFFIXES = [".local", ".lan", ".home.arpa", ".internal"];
 function isPrivateHost(hostname) {
   const h = hostname.toLowerCase().replace(/^\[|\]$/g, "");
-  if (h === "localhost" || h === "::1" || h.endsWith(".local")) return true;
+  if (h.includes(":")) return h === "::1" || /^f[cd][0-9a-f]{2}:/.test(h) || /^fe[89ab][0-9a-f]:/.test(h);
+  if (h === "localhost" || !h.includes(".") || PRIVATE_SUFFIXES.some((s) => h.endsWith(s))) return true;
   const m = /^(\d+)\.(\d+)\.\d+\.\d+$/.exec(h);
   if (!m) return false;
   const a = Number(m[1]);
   const b = Number(m[2]);
-  return a === 127 || a === 10 || a === 192 && b === 168 || a === 172 && b >= 16 && b <= 31;
+  return a === 127 || a === 10 || a === 192 && b === 168 || a === 172 && b >= 16 && b <= 31 || a === 100 && b >= 64 && b <= 127 || a === 169 && b === 254;
 }
 function normalizeEndpoint(raw) {
   const trimmed = raw.trim().replace(/\/+$/, "");
@@ -334,9 +336,14 @@ function displayPrefix(prefix) {
   return prefix.trim().replace(/^\/+|\/+$/g, "");
 }
 var BUCKET_RE = /^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/;
-function validateBucket(bucket) {
+function validateBucket({ bucket, addressing, endpoint }) {
   if (!BUCKET_RE.test(bucket)) {
     throw new Error("s3-sync: bucket names are 3\u201363 lowercase letters, digits, dots or hyphens");
+  }
+  if (addressing === "virtual" && bucket.includes(".") && /^https:/i.test(endpoint.trim())) {
+    throw new Error(
+      "s3-sync: a bucket name with dots does not work over https:// in virtual-hosted style \u2014 untick the hostname option or use a bucket without dots"
+    );
   }
 }
 async function loadS3Config(api) {
@@ -445,7 +452,9 @@ function tag(xml, name) {
 function parseListObjects(xml) {
   const objects = [...xml.matchAll(/<Contents>([\s\S]*?)<\/Contents>/g)].map(([, c]) => ({
     key: tag(c, "Key") ?? "",
-    etag: (tag(c, "ETag") ?? "").replace(/^"|"$/g, "")
+    etag: (tag(c, "ETag") ?? "").replace(/^"|"$/g, ""),
+    lastModified: tag(c, "LastModified") ?? "",
+    size: tag(c, "Size") ?? ""
   }));
   return { objects, truncated: tag(xml, "IsTruncated") === "true", nextToken: tag(xml, "NextContinuationToken") };
 }
@@ -458,7 +467,8 @@ function deleteErrors(xml) {
 }
 
 // src/s3-errors.ts
-var AUTH_CODES = /* @__PURE__ */ new Set(["InvalidAccessKeyId", "SignatureDoesNotMatch", "AccessDenied"]);
+var AUTH_CODES = /* @__PURE__ */ new Set(["InvalidAccessKeyId", "SignatureDoesNotMatch", "AccessDenied", "AllAccessDisabled", "AccountProblem"]);
+var WRONG_REGION_CODES = /* @__PURE__ */ new Set(["AuthorizationHeaderMalformed", "PermanentRedirect"]);
 function toStoreError(status, body) {
   const { code, message } = parseErrorBody(body);
   if (code === "RequestTimeTooSkewed") {
@@ -469,6 +479,9 @@ function toStoreError(status, body) {
   }
   if (code === "NoSuchBucket") {
     return new StoreError("not_found", "Bucket not found \u2014 check the bucket name, region and endpoint.", status);
+  }
+  if (code !== null && WRONG_REGION_CODES.has(code)) {
+    return new StoreError("not_found", "This bucket lives in another region or behind another endpoint \u2014 check the region and endpoint.", status);
   }
   if (status === 412 || status === 409) return new StoreError("conflict", "The object changed while writing it", status);
   return new StoreError("other", code ? `${code}: ${message ?? `HTTP ${status}`}` : `HTTP ${status}`, status);
@@ -538,7 +551,7 @@ var S3Store = class {
     this.http = http;
     this.cfg = cfg;
     this.now = now;
-    validateBucket(cfg.bucket);
+    validateBucket(cfg);
     this.endpoint = new URL(normalizeEndpoint(cfg.endpoint));
     this.prefix = normalizePrefix(cfg.prefix);
   }
@@ -614,16 +627,21 @@ var S3Store = class {
     throw new StoreError("other", `${this.key(VAULT_KEY)} in this bucket is not a Voltius vault`);
   }
   async createSalt(salt) {
-    let putErr = null;
+    const body = JSON.stringify({ schema: 1, salt });
     try {
-      await this.putText(VAULT_KEY, JSON.stringify({ schema: 1, salt }), "application/json", { "if-none-match": "*" });
+      await this.putText(VAULT_KEY, body, "application/json", { "if-none-match": "*" });
     } catch (err) {
       if (!(err instanceof StoreError && (err.kind === "conflict" || err.kind === "other"))) throw err;
-      putErr = err;
+      const existing = await this.readSalt().catch(() => {
+        throw err;
+      });
+      if (existing) return existing;
+      const conditionalRejected = err.kind === "other" && (err.status === 400 || err.status === 501);
+      if (!conditionalRejected) throw err;
+      await this.putText(VAULT_KEY, body, "application/json");
     }
-    const stored = putErr ? await this.readSalt().catch(() => null) : await this.readSalt();
+    const stored = await this.readSalt();
     if (stored) return stored;
-    if (putErr) throw putErr;
     throw new StoreError("other", "The vault file could not be read back after writing it");
   }
   async listDevices() {
@@ -640,7 +658,7 @@ var S3Store = class {
         const rest = o.key.slice(dir.length);
         if (!o.key.startsWith(dir) || !rest.endsWith(".b64")) continue;
         const id = rest.slice(0, -4);
-        if (DEVICE_ID_RE.test(id)) out.push({ id, version: o.etag });
+        if (DEVICE_ID_RE.test(id)) out.push({ id, version: o.etag || `${o.lastModified}:${o.size}` });
       }
       token = page.truncated ? page.nextToken : null;
     } while (token);
@@ -651,7 +669,7 @@ var S3Store = class {
     return Promise.all(
       devices.map(async ({ id }) => {
         try {
-          const text = await this.getText(`${DEVICES_DIR}${id}.json`);
+          const text = await this.getText(this.deviceFile(id, "json"));
           const meta = JSON.parse(text ?? "");
           return {
             id,
@@ -664,20 +682,19 @@ var S3Store = class {
       })
     );
   }
-  requireDeviceId(id) {
+  deviceFile(id, ext) {
     if (!DEVICE_ID_RE.test(id)) throw new StoreError("other", `"${id}" is not a valid device id`);
+    return `${DEVICES_DIR}${id}.${ext}`;
   }
   async getDevice(id) {
-    this.requireDeviceId(id);
-    return this.getText(`${DEVICES_DIR}${id}.b64`);
+    return this.getText(this.deviceFile(id, "b64"));
   }
   async putDevice(id, blob, info) {
-    this.requireDeviceId(id);
-    await this.putText(`${DEVICES_DIR}${id}.b64`, blob, "text/plain; charset=utf-8");
-    await this.putText(`${DEVICES_DIR}${id}.json`, JSON.stringify(info), "application/json");
+    await this.putText(this.deviceFile(id, "b64"), blob, "text/plain; charset=utf-8");
+    await this.putText(this.deviceFile(id, "json"), JSON.stringify(info), "application/json");
   }
   async deleteDevice(id) {
-    await this.deleteKeys([`${DEVICES_DIR}${id}.b64`, `${DEVICES_DIR}${id}.json`]);
+    await this.deleteKeys([this.deviceFile(id, "b64"), this.deviceFile(id, "json")]);
   }
   async probe() {
     const step = async (label, fn) => {
@@ -1185,6 +1202,10 @@ var PRESETS = [
 function endpointFor(preset, region) {
   return preset.endpoint.replace("{region}", region.trim() || preset.region);
 }
+function endpointAfterRegionChange(preset, endpoint, previousRegion, region) {
+  if (!preset?.endpoint.includes("{region}") || endpoint !== endpointFor(preset, previousRegion)) return endpoint;
+  return endpointFor(preset, region);
+}
 
 // src/SetupWizard.tsx
 import { Fragment as Fragment2, jsx as jsx4, jsxs as jsxs4 } from "react/jsx-runtime";
@@ -1207,11 +1228,11 @@ function SetupWizard({ api, engine, onDone }) {
     setAddressing(p.addressing);
   };
   const changeRegion = (value) => {
+    setEndpoint(endpointAfterRegionChange(preset, endpoint, region, value));
     setRegion(value);
-    if (preset?.endpoint.includes("{region}")) setEndpoint(endpointFor(preset, value));
   };
   const connect = () => run("Testing the bucket\u2026", async () => {
-    validateBucket(bucket.trim());
+    validateBucket({ bucket: bucket.trim(), addressing, endpoint });
     const cfg = {
       endpoint: normalizeEndpoint(endpoint),
       region: region.trim(),
