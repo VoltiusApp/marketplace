@@ -63,6 +63,37 @@ describe("S3Store salt", () => {
     expect(await s.createSalt(salt)).toBe(existing);
   });
 
+  it("recovers from a non-conflict PUT rejection if a valid vault already exists", async () => {
+    const existing = "e".repeat(32);
+    const { s } = store((r) =>
+      r.method === "PUT"
+        ? { status: 501, body: `HTTP 501: ${errXml("NotImplemented")}` }
+        : { status: 200, body: JSON.stringify({ schema: 1, salt: existing }) },
+    );
+    expect(await s.createSalt(salt)).toBe(existing);
+  });
+
+  it("rethrows the original PUT error when the read-back after a non-conflict failure finds nothing", async () => {
+    const { s } = store((r) =>
+      r.method === "PUT"
+        ? { status: 501, body: `HTTP 501: ${errXml("NotImplemented")}` }
+        : { status: 404, body: `HTTP 404: ${errXml("NoSuchKey")}` },
+    );
+    await expect(s.createSalt(salt)).rejects.toMatchObject({ kind: "other", status: 501 });
+  });
+
+  it("propagates a non-conflict, non-recoverable PUT error instead of swallowing it", async () => {
+    const { s } = store(() => ({ status: 403, body: `HTTP 403: ${errXml("AccessDenied")}` }));
+    await expect(s.createSalt(salt)).rejects.toMatchObject({ kind: "auth" });
+  });
+
+  it("throws when the vault cannot be read back after a successful write", async () => {
+    const { s } = store((r) =>
+      r.method === "PUT" ? { status: 200 } : { status: 404, body: `HTTP 404: ${errXml("NoSuchKey")}` },
+    );
+    await expect(s.createSalt(salt)).rejects.toMatchObject({ kind: "other" });
+  });
+
   it("rejects a vault.json that is not a Voltius vault", async () => {
     const { s } = store(() => ({ status: 200, body: "{}" }));
     await expect(s.readSalt()).rejects.toMatchObject({ kind: "other" });

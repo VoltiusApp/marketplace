@@ -554,14 +554,17 @@ var S3Store = class {
     throw new StoreError("other", `${this.key(VAULT_KEY)} in this bucket is not a Voltius vault`);
   }
   async createSalt(salt) {
+    let putErr = null;
     try {
       await this.putText(VAULT_KEY, JSON.stringify({ schema: 1, salt }), "application/json", { "if-none-match": "*" });
     } catch (err) {
-      if (!(err instanceof StoreError && err.kind === "conflict")) throw err;
+      if (!(err instanceof StoreError && (err.kind === "conflict" || err.kind === "other"))) throw err;
+      putErr = err;
     }
-    const stored = await this.readSalt();
-    if (!stored) throw new StoreError("other", "The vault file could not be read back after writing it");
-    return stored;
+    const stored = putErr ? await this.readSalt().catch(() => null) : await this.readSalt();
+    if (stored) return stored;
+    if (putErr) throw putErr;
+    throw new StoreError("other", "The vault file could not be read back after writing it");
   }
   async listDevices() {
     const dir = this.key(DEVICES_DIR);
