@@ -390,8 +390,48 @@ async function send(http, url, init = {}, timeoutMs = REQUEST_TIMEOUT_MS) {
   }
 }
 
+// src/md5.ts
+var S = [7, 12, 17, 22, 5, 9, 14, 20, 4, 11, 16, 23, 6, 10, 15, 21];
+var K = Array.from({ length: 64 }, (_, i) => Math.floor(Math.abs(Math.sin(i + 1)) * 2 ** 32) >>> 0);
+function md5(input) {
+  const data = new TextEncoder().encode(input);
+  const padded = new Uint8Array((data.length + 8 >> 6) + 1 << 6);
+  padded.set(data);
+  padded[data.length] = 128;
+  const view = new DataView(padded.buffer);
+  view.setUint32(padded.length - 8, data.length * 8 >>> 0, true);
+  view.setUint32(padded.length - 4, Math.floor(data.length / 2 ** 29), true);
+  const state = [1732584193, 4023233417, 2562383102, 271733878];
+  for (let off = 0; off < padded.length; off += 64) {
+    let [a, b, c, d] = state;
+    for (let i = 0; i < 64; i++) {
+      let f, g;
+      if (i < 16) [f, g] = [b & c | ~b & d, i];
+      else if (i < 32) [f, g] = [d & b | ~d & c, (5 * i + 1) % 16];
+      else if (i < 48) [f, g] = [b ^ c ^ d, (3 * i + 5) % 16];
+      else [f, g] = [c ^ (b | ~d), 7 * i % 16];
+      const s = S[i >> 4 << 2 | i & 3];
+      const sum = a + f + K[i] + view.getUint32(off + g * 4, true) | 0;
+      [a, d, c] = [d, c, b];
+      b = b + (sum << s | sum >>> 32 - s) | 0;
+    }
+    [a, b, c, d].forEach((v, j) => state[j] = state[j] + v | 0);
+  }
+  const out = new Uint8Array(16);
+  const outView = new DataView(out.buffer);
+  state.forEach((w, i) => outView.setUint32(i * 4, w >>> 0, true));
+  return out;
+}
+function md5Base64(input) {
+  return btoa(String.fromCharCode(...md5(input)));
+}
+
 // src/s3-xml.ts
 var ENTITIES = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" };
+var ESCAPES = Object.fromEntries(Object.entries(ENTITIES).map(([name, ch]) => [ch, `&${name};`]));
+function escapeXml(s) {
+  return s.replace(/[&<>"']/g, (ch) => ESCAPES[ch]);
+}
 function decodeXml(s) {
   return s.replace(
     /&(#x[0-9a-f]+|#\d+|amp|lt|gt|quot|apos);/gi,
@@ -412,6 +452,9 @@ function parseListObjects(xml) {
 function parseErrorBody(body) {
   const xml = body.replace(/^HTTP \d{3}: /, "");
   return { code: tag(xml, "Code"), message: tag(xml, "Message") };
+}
+function deleteErrors(xml) {
+  return [...xml.matchAll(/<Error>[\s\S]*?<\/Error>/g)].map(([e]) => e);
 }
 
 // src/s3-errors.ts
@@ -528,7 +571,7 @@ var S3Store = class {
     return send(this.http, `${this.endpoint.protocol}//${host}${path}${qs ? `?${qs}` : ""}`, {
       method,
       headers,
-      body: method === "PUT" ? body : void 0
+      body: method === "GET" ? void 0 : body
     });
   }
   key(name) {
@@ -547,9 +590,18 @@ var S3Store = class {
     const res = await this.request("PUT", this.key(name), { body, headers: { "content-type": contentType, ...headers } });
     if (!res.ok) throw toStoreError(res.status, res.body);
   }
-  async remove(name) {
-    const res = await this.request("DELETE", this.key(name));
-    if (!res.ok && !this.isMissingObject(res)) throw toStoreError(res.status, res.body);
+  // Single-object DELETE answers 204, which released hosts' HTTP bridge cannot deliver.
+  async deleteKeys(names) {
+    const objects = names.map((n) => `<Object><Key>${escapeXml(this.key(n))}</Key></Object>`).join("");
+    const body = `<?xml version="1.0" encoding="UTF-8"?><Delete><Quiet>true</Quiet>${objects}</Delete>`;
+    const res = await this.request("POST", null, {
+      query: [["delete", ""]],
+      body,
+      headers: { "content-md5": md5Base64(body), "content-type": "application/xml" }
+    });
+    if (!res.ok) throw toStoreError(res.status, res.body);
+    const [failed] = deleteErrors(res.body);
+    if (failed) throw toStoreError(res.status, failed);
   }
   async readSalt() {
     const text = await this.getText(VAULT_KEY);
@@ -625,8 +677,7 @@ var S3Store = class {
     await this.putText(`${DEVICES_DIR}${id}.json`, JSON.stringify(info), "application/json");
   }
   async deleteDevice(id) {
-    await this.remove(`${DEVICES_DIR}${id}.b64`);
-    await this.remove(`${DEVICES_DIR}${id}.json`);
+    await this.deleteKeys([`${DEVICES_DIR}${id}.b64`, `${DEVICES_DIR}${id}.json`]);
   }
   async probe() {
     const step = async (label, fn) => {
@@ -641,7 +692,7 @@ var S3Store = class {
     await step("Read", async () => {
       if (await this.getText(PROBE_KEY) !== "ok") throw new Error("the bucket did not return what was written");
     });
-    await step("Delete", () => this.remove(PROBE_KEY));
+    await step("Delete", () => this.deleteKeys([PROBE_KEY]));
   }
 };
 
