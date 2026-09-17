@@ -229,6 +229,12 @@ describe("S3Store devices", () => {
     await expect(s.getDevice("bad/id")).rejects.toMatchObject({ kind: "other" });
   });
 
+  it("rejects an invalid device id on delete without sending anything", async () => {
+    const { s, requests } = store(() => ({ status: 200, body: "<DeleteResult/>" }));
+    await expect(s.deleteDevice("../vault")).rejects.toMatchObject({ kind: "other" });
+    expect(requests).toEqual([]);
+  });
+
   it("GET never sends a body; PUT sends exactly the signed body", async () => {
     const { s, requests } = store(() => ({ status: 200 }));
     await s.getDevice("a");

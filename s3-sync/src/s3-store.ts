@@ -148,7 +148,7 @@ export class S3Store implements VaultStore {
     return Promise.all(
       devices.map(async ({ id }) => {
         try {
-          const text = await this.getText(`${DEVICES_DIR}${id}.json`);
+          const text = await this.getText(this.deviceFile(id, "json"));
           const meta = JSON.parse(text ?? "") as { label?: unknown; pushedAt?: unknown };
           return {
             id,
@@ -162,23 +162,22 @@ export class S3Store implements VaultStore {
     );
   }
 
-  private requireDeviceId(id: string): void {
+  private deviceFile(id: string, ext: "b64" | "json"): string {
     if (!DEVICE_ID_RE.test(id)) throw new StoreError("other", `"${id}" is not a valid device id`);
+    return `${DEVICES_DIR}${id}.${ext}`;
   }
 
   async getDevice(id: string): Promise<string | null> {
-    this.requireDeviceId(id);
-    return this.getText(`${DEVICES_DIR}${id}.b64`);
+    return this.getText(this.deviceFile(id, "b64"));
   }
 
   async putDevice(id: string, blob: string, info: { label: string; pushedAt: string }): Promise<void> {
-    this.requireDeviceId(id);
-    await this.putText(`${DEVICES_DIR}${id}.b64`, blob, "text/plain; charset=utf-8");
-    await this.putText(`${DEVICES_DIR}${id}.json`, JSON.stringify(info), "application/json");
+    await this.putText(this.deviceFile(id, "b64"), blob, "text/plain; charset=utf-8");
+    await this.putText(this.deviceFile(id, "json"), JSON.stringify(info), "application/json");
   }
 
   async deleteDevice(id: string): Promise<void> {
-    await this.deleteKeys([`${DEVICES_DIR}${id}.b64`, `${DEVICES_DIR}${id}.json`]);
+    await this.deleteKeys([this.deviceFile(id, "b64"), this.deviceFile(id, "json")]);
   }
 
   async probe(): Promise<void> {
