@@ -37,6 +37,11 @@ describe("S3Store addressing", () => {
     expect(await s.readSalt()).toBe(salt);
     expect(requests[0].url).toBe("https://vault.s3.eu-west-3.amazonaws.com/team/vault.json");
   });
+
+  it("rejects an invalid bucket name", () => {
+    const { http } = fakeHttp(() => ({ status: 200 }));
+    expect(() => new S3Store(http, { ...cfg, bucket: "AB" })).toThrow(/bucket/);
+  });
 });
 
 describe("S3Store salt", () => {

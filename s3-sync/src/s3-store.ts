@@ -1,6 +1,6 @@
 import { send, type Http, type HttpResult } from "../../shared/vault-sync/src/http";
 import { DEVICE_ID_RE, StoreError, type DeviceInfo, type DeviceVersion, type VaultStore } from "../../shared/vault-sync/src/store";
-import { normalizeEndpoint, normalizePrefix, type S3Config } from "./config";
+import { normalizeEndpoint, normalizePrefix, validateBucket, type S3Config } from "./config";
 import { toStoreError } from "./s3-errors";
 import { parseErrorBody, parseListObjects } from "./s3-xml";
 import { canonicalQuery, encodeKeyPath, encodeRfc3986, signRequest } from "./sigv4";
@@ -21,6 +21,7 @@ export class S3Store implements VaultStore {
     private readonly cfg: S3Config,
     private readonly now: () => Date = () => new Date(),
   ) {
+    validateBucket(cfg.bucket);
     this.endpoint = new URL(normalizeEndpoint(cfg.endpoint));
     this.prefix = normalizePrefix(cfg.prefix);
   }

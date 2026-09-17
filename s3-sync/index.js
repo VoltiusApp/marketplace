@@ -488,6 +488,7 @@ var S3Store = class {
     this.http = http;
     this.cfg = cfg;
     this.now = now;
+    validateBucket(cfg.bucket);
     this.endpoint = new URL(normalizeEndpoint(cfg.endpoint));
     this.prefix = normalizePrefix(cfg.prefix);
   }
