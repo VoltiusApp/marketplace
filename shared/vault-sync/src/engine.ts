@@ -250,8 +250,16 @@ export function createVaultSyncEngine({ api, storageKeys, vaultKeys, openStore }
     setState(offline ? "offline" : "error", offline ? undefined : err instanceof Error ? err.message : String(err));
   }
 
-  async function syncNow(): Promise<void> {
-    if (!(await isConfigured()) || status === "syncing") return;
+  let inFlight: Promise<void> | null = null;
+
+  function syncNow(): Promise<void> {
+    return (inFlight ??= runSync().finally(() => {
+      inFlight = null;
+    }));
+  }
+
+  async function runSync(): Promise<void> {
+    if (!(await isConfigured())) return;
     setState("syncing");
     try {
       for (let attempt = 0; ; attempt++) {

@@ -130,6 +130,23 @@ describe("syncNow", () => {
     expect(engine.getState().status).toBe("success");
   });
 
+  it("runs overlapping calls as one sync", async () => {
+    const { engine, store } = setup();
+    await engine.createVault(store, "pw", values);
+    const originalPutDevice = store.putDevice.bind(store);
+    let puts = 0;
+    store.putDevice = async (id: string, blob: string, info: { label: string; pushedAt: string }) => {
+      puts++;
+      return originalPutDevice(id, blob, info);
+    };
+    const first = engine.syncNow();
+    await engine.syncNow();
+    expect(puts).toBe(1);
+    expect(engine.getState().status).toBe("success");
+    await first;
+    expect(puts).toBe(1);
+  });
+
   it("retries a conflict and then succeeds", async () => {
     const { engine, store } = setup();
     await engine.createVault(store, "pw", values);
