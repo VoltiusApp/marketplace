@@ -152,6 +152,12 @@ describe("S3Store devices", () => {
     const { s } = store(() => ({ status: 403, body: `HTTP 403: ${errXml("SignatureDoesNotMatch")}` }));
     await expect(s.getDevice("a")).rejects.toMatchObject({ kind: "auth" });
   });
+
+  it("rejects a device id that would be filtered out of listDevices", async () => {
+    const { s } = store(() => ({ status: 200 }));
+    await expect(s.putDevice("bad/id", "B", { label: "L", pushedAt: "t" })).rejects.toMatchObject({ kind: "other" });
+    await expect(s.getDevice("bad/id")).rejects.toMatchObject({ kind: "other" });
+  });
 });
 
 describe("S3Store probe", () => {

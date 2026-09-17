@@ -147,11 +147,17 @@ export class S3Store implements VaultStore {
     );
   }
 
+  private requireDeviceId(id: string): void {
+    if (!DEVICE_ID_RE.test(id)) throw new StoreError("other", `"${id}" is not a valid device id`);
+  }
+
   async getDevice(id: string): Promise<string | null> {
+    this.requireDeviceId(id);
     return this.getText(`${DEVICES_DIR}${id}.b64`);
   }
 
   async putDevice(id: string, blob: string, info: { label: string; pushedAt: string }): Promise<void> {
+    this.requireDeviceId(id);
     await this.putText(`${DEVICES_DIR}${id}.b64`, blob, "text/plain; charset=utf-8");
     await this.putText(`${DEVICES_DIR}${id}.json`, JSON.stringify(info), "application/json");
   }

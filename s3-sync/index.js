@@ -605,10 +605,15 @@ var S3Store = class {
       })
     );
   }
+  requireDeviceId(id) {
+    if (!DEVICE_ID_RE.test(id)) throw new StoreError("other", `"${id}" is not a valid device id`);
+  }
   async getDevice(id) {
+    this.requireDeviceId(id);
     return this.getText(`${DEVICES_DIR}${id}.b64`);
   }
   async putDevice(id, blob, info) {
+    this.requireDeviceId(id);
     await this.putText(`${DEVICES_DIR}${id}.b64`, blob, "text/plain; charset=utf-8");
     await this.putText(`${DEVICES_DIR}${id}.json`, JSON.stringify(info), "application/json");
   }
