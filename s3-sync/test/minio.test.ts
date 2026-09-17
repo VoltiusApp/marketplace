@@ -4,6 +4,8 @@ import type { S3Config } from "../src/config";
 import { S3Store } from "../src/s3-store";
 import { signRequest } from "../src/sigv4";
 
+declare const process: { env: Record<string, string | undefined> };
+
 const endpoint = process.env.MINIO_ENDPOINT;
 const http = { stream: (url: string, init?: RequestInit) => fetch(url, init) } as unknown as Http;
 const bucket = `vs-${Date.now()}`;
