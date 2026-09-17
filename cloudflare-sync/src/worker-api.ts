@@ -169,3 +169,20 @@ export async function deleteDevice(
     headers: headers(token),
   });
 }
+
+export function normalizeWorkerUrl(raw: string): string {
+  const trimmed = raw.trim().replace(/\/+$/, "");
+  if (!trimmed) throw new Error("cloudflare-sync: Worker URL is required");
+  let url: URL;
+  try {
+    url = new URL(trimmed);
+  } catch {
+    throw new Error("cloudflare-sync: Worker URL is invalid");
+  }
+  const host = url.hostname.toLowerCase();
+  const local = host === "localhost" || host === "127.0.0.1" || host === "[::1]";
+  if (url.protocol !== "https:" && !(url.protocol === "http:" && local)) {
+    throw new Error("cloudflare-sync: Worker URL must use https:// (http:// only for localhost)");
+  }
+  return `${url.protocol}//${url.host}${url.pathname.replace(/\/+$/, "")}`;
+}
