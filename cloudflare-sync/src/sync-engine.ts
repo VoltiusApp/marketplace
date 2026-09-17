@@ -1,5 +1,5 @@
 import type { PluginAPI } from "@voltius/plugin-types";
-import { generateSaltHex } from "./crypto";
+import { generateSaltHex } from "../../shared/vault-sync/src/crypto";
 import type { SyncStatus } from "./types";
 import {
   WorkerApiError,

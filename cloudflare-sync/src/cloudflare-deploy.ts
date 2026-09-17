@@ -1,5 +1,5 @@
 import WORKER_SCRIPT from "../dist/worker.mjs";
-import { parseJson, send, type Http, type HttpResult } from "./http";
+import { parseJson, send, type Http, type HttpResult } from "../../shared/vault-sync/src/http";
 
 const CF_API = "https://api.cloudflare.com/client/v4";
 

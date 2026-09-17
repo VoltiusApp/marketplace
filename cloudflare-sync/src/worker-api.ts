@@ -1,4 +1,4 @@
-import { parseJson, send, type Http, type HttpResult } from "./http";
+import { parseJson, send, type Http, type HttpResult } from "../../shared/vault-sync/src/http";
 
 export type WorkerDevice = {
   id: string;
