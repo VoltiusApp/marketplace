@@ -55,6 +55,10 @@ export function normalizePrefix(raw: string): string {
   return `${p}/`;
 }
 
+export function displayPrefix(prefix: string): string {
+  return prefix.trim().replace(/^\/+|\/+$/g, "");
+}
+
 const BUCKET_RE = /^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/;
 
 export function validateBucket(bucket: string): void {

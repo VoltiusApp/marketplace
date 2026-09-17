@@ -1,14 +1,11 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import type { PluginAPI } from "@voltius/plugin-types";
 import type { VaultSyncEngine } from "../../shared/vault-sync/src/engine";
-import { Btn, ErrorBanner, Hint, LinkButton, SecretInput, TextInput, openExternal, useAction } from "../../shared/vault-sync/src/ui/components";
+import { Btn, ErrorBanner, Hint, INPUT_CLASS, LinkButton, SecretInput, TextInput, openExternal, useAction } from "../../shared/vault-sync/src/ui/components";
 import { ActionRow, PassphraseStep, StepCard, type Connection } from "../../shared/vault-sync/src/ui/wizard";
-import { normalizeEndpoint, normalizePrefix, toConfigValues, validateBucket, type Addressing, type S3Config } from "./config";
+import { displayPrefix, normalizeEndpoint, normalizePrefix, toConfigValues, validateBucket, type Addressing, type S3Config } from "./config";
 import { endpointFor, PRESETS, type Preset } from "./presets";
 import { S3Store } from "./s3-store";
-
-const SELECT_CLASS =
-  "form-input w-full px-3 py-2 rounded-lg text-sm outline-hidden bg-(--t-bg-input) border border-(--t-border) text-(--t-text-primary)";
 
 export function SetupWizard({ api, engine, onDone }: { api: PluginAPI; engine: VaultSyncEngine; onDone: () => void }) {
   const [preset, setPreset] = useState<Preset | null>(null);
@@ -51,7 +48,7 @@ export function SetupWizard({ api, engine, onDone }: { api: PluginAPI; engine: V
       const store = new S3Store(api.http, cfg);
       await store.probe();
       const vault = await engine.detectVault(store);
-      setSummary(`${cfg.endpoint} · ${cfg.bucket}${cfg.prefix ? `/${cfg.prefix}` : ""}`);
+      setSummary(`${cfg.endpoint} · ${cfg.bucket}${cfg.prefix ? `/${displayPrefix(cfg.prefix)}` : ""}`);
       setConnection({ store, vault, values: toConfigValues(cfg) });
     });
 
@@ -73,7 +70,7 @@ export function SetupWizard({ api, engine, onDone }: { api: PluginAPI; engine: V
         summary={preset?.name}
         onChange={busy ? undefined : () => { setPreset(null); setConnection(null); setError(null); }}
       >
-        <select className={SELECT_CLASS} value="" onChange={(e) => { const p = PRESETS.find((x) => x.id === e.target.value); if (p) choosePreset(p); }}>
+        <select className={INPUT_CLASS} value="" onChange={(e) => { const p = PRESETS.find((x) => x.id === e.target.value); if (p) choosePreset(p); }}>
           <option value="" disabled>Choose a provider</option>
           {PRESETS.map((p) => (
             <option key={p.id} value={p.id}>{p.name}</option>
@@ -89,8 +86,8 @@ export function SetupWizard({ api, engine, onDone }: { api: PluginAPI; engine: V
         summary={<span className="font-mono">{summary}</span>}
         onChange={busy ? undefined : () => { setConnection(null); setError(null); }}
       >
-        <TextInput label="Endpoint" value={endpoint} onChange={setEndpoint} placeholder="https://s3.example.com" />
-        <TextInput label="Region" value={region} onChange={changeRegion} placeholder={preset?.regionHint} hint={preset?.regionHint} />
+        <TextInput label="Endpoint" value={endpoint} onChange={setEndpoint} placeholder="https://s3.example.com" hint={preset?.endpointHint} />
+        <TextInput label="Region" value={region} onChange={changeRegion} hint={preset?.regionHint} />
         <TextInput label="Bucket" value={bucket} onChange={setBucket} placeholder="voltius-vault" hint="Create the bucket first, in your provider's console." />
         <TextInput label="Folder in the bucket" value={prefix} onChange={setPrefix} placeholder="voltius" hint="Optional. Lets one bucket hold other data too." />
         <SecretInput label="Access key ID" value={accessKeyId} onChange={setAccessKeyId} placeholder="Access key ID" />

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { fakeApi } from "../../shared/vault-sync/src/testing/fakes";
 import {
+  displayPrefix,
   isPrivateHost,
   loadS3Config,
   normalizeEndpoint,
@@ -41,6 +42,13 @@ describe("normalizePrefix", () => {
     expect(() => normalizePrefix("./voltius")).toThrow(/segment/);
     expect(() => normalizePrefix("voltius/../x")).toThrow(/segment/);
     expect(() => normalizePrefix("voltius/..")).toThrow(/segment/);
+  });
+});
+
+describe("displayPrefix", () => {
+  it("drops the trailing slash a stored prefix carries", () => {
+    expect(displayPrefix("voltius/team/")).toBe("voltius/team");
+    expect(displayPrefix("")).toBe("");
   });
 });
 

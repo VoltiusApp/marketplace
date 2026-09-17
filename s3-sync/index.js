@@ -330,6 +330,9 @@ function normalizePrefix(raw) {
   }
   return `${p}/`;
 }
+function displayPrefix(prefix) {
+  return prefix.trim().replace(/^\/+|\/+$/g, "");
+}
 var BUCKET_RE = /^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/;
 function validateBucket(bucket) {
   if (!BUCKET_RE.test(bucket)) {
@@ -800,6 +803,12 @@ function Card({ title, aside, children }) {
   ] });
 }
 var INPUT_CLASS = "form-input w-full px-3 py-2 rounded-lg text-sm outline-hidden bg-(--t-bg-input) border border-(--t-border) text-(--t-text-primary)";
+function ConnectionRow({ label, value }) {
+  return /* @__PURE__ */ jsxs("div", { className: "flex flex-col gap-1", children: [
+    /* @__PURE__ */ jsx("span", { className: "text-xs font-medium text-(--t-text-muted)", children: label }),
+    /* @__PURE__ */ jsx("span", { className: "text-sm font-mono text-(--t-text-primary) break-all", children: value })
+  ] });
+}
 function FieldShell({ label, hint, children }) {
   return /* @__PURE__ */ jsxs("div", { className: "flex flex-col gap-1", children: [
     /* @__PURE__ */ jsx("label", { className: "text-xs font-medium text-(--t-text-muted)", children: label }),
@@ -1114,7 +1123,7 @@ function PassphraseStep({
 // src/presets.ts
 var PRESETS = [
   { id: "aws", name: "AWS S3", endpoint: "https://s3.{region}.amazonaws.com", region: "us-east-1", regionHint: "e.g. eu-west-3", addressing: "virtual", keysUrl: "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html" },
-  { id: "r2", name: "Cloudflare R2", endpoint: "https://<ACCOUNT_ID>.r2.cloudflarestorage.com", region: "auto", regionHint: "auto", addressing: "path", keysUrl: "https://developers.cloudflare.com/r2/api/tokens/" },
+  { id: "r2", name: "Cloudflare R2", endpoint: "https://<ACCOUNT_ID>.r2.cloudflarestorage.com", region: "auto", regionHint: "auto", endpointHint: "Replace <ACCOUNT_ID> with your Cloudflare account ID (Cloudflare dashboard \u203A R2 \u203A API).", addressing: "path", keysUrl: "https://developers.cloudflare.com/r2/api/tokens/" },
   { id: "b2", name: "Backblaze B2", endpoint: "https://s3.{region}.backblazeb2.com", region: "us-west-004", regionHint: "shown on the bucket page, e.g. eu-central-003", addressing: "path", keysUrl: "https://www.backblaze.com/docs/cloud-storage-create-and-manage-app-keys" },
   { id: "wasabi", name: "Wasabi", endpoint: "https://s3.{region}.wasabisys.com", region: "us-east-1", regionHint: "e.g. eu-central-1", addressing: "path", keysUrl: "https://docs.wasabi.com/docs/creating-a-user-account-and-access-key" },
   { id: "minio", name: "MinIO", endpoint: "http://localhost:9000", region: "us-east-1", regionHint: "usually us-east-1", addressing: "path", keysUrl: "https://min.io/docs/minio/linux/administration/identity-access-management/minio-user-management.html" },
@@ -1128,7 +1137,6 @@ function endpointFor(preset, region) {
 
 // src/SetupWizard.tsx
 import { Fragment as Fragment2, jsx as jsx4, jsxs as jsxs4 } from "react/jsx-runtime";
-var SELECT_CLASS = "form-input w-full px-3 py-2 rounded-lg text-sm outline-hidden bg-(--t-bg-input) border border-(--t-border) text-(--t-text-primary)";
 function SetupWizard({ api, engine, onDone }) {
   const [preset, setPreset] = useState4(null);
   const [connection, setConnection] = useState4(null);
@@ -1165,7 +1173,7 @@ function SetupWizard({ api, engine, onDone }) {
     const store = new S3Store(api.http, cfg);
     await store.probe();
     const vault = await engine.detectVault(store);
-    setSummary(`${cfg.endpoint} \xB7 ${cfg.bucket}${cfg.prefix ? `/${cfg.prefix}` : ""}`);
+    setSummary(`${cfg.endpoint} \xB7 ${cfg.bucket}${cfg.prefix ? `/${displayPrefix(cfg.prefix)}` : ""}`);
     setConnection({ store, vault, values: toConfigValues(cfg) });
   });
   const connectReason = !endpoint.trim() ? "Enter the endpoint" : !bucket.trim() ? "Enter the bucket name" : !accessKeyId.trim() || !secretAccessKey.trim() ? "Enter the access key and secret" : null;
@@ -1184,7 +1192,7 @@ function SetupWizard({ api, engine, onDone }) {
           setError(null);
         },
         children: [
-          /* @__PURE__ */ jsxs4("select", { className: SELECT_CLASS, value: "", onChange: (e) => {
+          /* @__PURE__ */ jsxs4("select", { className: INPUT_CLASS, value: "", onChange: (e) => {
             const p = PRESETS.find((x) => x.id === e.target.value);
             if (p) choosePreset(p);
           }, children: [
@@ -1207,8 +1215,8 @@ function SetupWizard({ api, engine, onDone }) {
           setError(null);
         },
         children: [
-          /* @__PURE__ */ jsx4(TextInput, { label: "Endpoint", value: endpoint, onChange: setEndpoint, placeholder: "https://s3.example.com" }),
-          /* @__PURE__ */ jsx4(TextInput, { label: "Region", value: region, onChange: changeRegion, placeholder: preset?.regionHint, hint: preset?.regionHint }),
+          /* @__PURE__ */ jsx4(TextInput, { label: "Endpoint", value: endpoint, onChange: setEndpoint, placeholder: "https://s3.example.com", hint: preset?.endpointHint }),
+          /* @__PURE__ */ jsx4(TextInput, { label: "Region", value: region, onChange: changeRegion, hint: preset?.regionHint }),
           /* @__PURE__ */ jsx4(TextInput, { label: "Bucket", value: bucket, onChange: setBucket, placeholder: "voltius-vault", hint: "Create the bucket first, in your provider's console." }),
           /* @__PURE__ */ jsx4(TextInput, { label: "Folder in the bucket", value: prefix, onChange: setPrefix, placeholder: "voltius", hint: "Optional. Lets one bucket hold other data too." }),
           /* @__PURE__ */ jsx4(SecretInput, { label: "Access key ID", value: accessKeyId, onChange: setAccessKeyId, placeholder: "Access key ID" }),
@@ -1256,22 +1264,21 @@ function SetupWizard({ api, engine, onDone }) {
 // src/SettingsPage.tsx
 import { jsx as jsx5, jsxs as jsxs5 } from "react/jsx-runtime";
 function ConnectionCard({ api }) {
-  const [cfg, setCfg] = useState5(null);
+  const [rows, setRows] = useState5(null);
   useEffect2(() => {
-    void loadS3Config(api).then(setCfg);
+    void loadS3Config(api).then((cfg) => {
+      if (!cfg) return;
+      setRows([
+        ["Endpoint", cfg.endpoint],
+        ["Region", cfg.region || "us-east-1"],
+        ["Bucket", cfg.bucket],
+        ["Folder", displayPrefix(cfg.prefix) || "(bucket root)"]
+      ]);
+    });
   }, [api]);
-  if (!cfg) return null;
-  const rows = [
-    ["Endpoint", cfg.endpoint],
-    ["Region", cfg.region || "us-east-1"],
-    ["Bucket", cfg.bucket],
-    ["Folder", normalizePrefix(cfg.prefix) || "(bucket root)"]
-  ];
+  if (!rows) return null;
   return /* @__PURE__ */ jsxs5(Card, { title: "Connection", children: [
-    rows.map(([label, value]) => /* @__PURE__ */ jsxs5("div", { className: "flex flex-col gap-1", children: [
-      /* @__PURE__ */ jsx5("span", { className: "text-xs font-medium text-(--t-text-muted)", children: label }),
-      /* @__PURE__ */ jsx5("span", { className: "text-sm font-mono text-(--t-text-primary) break-all", children: value })
-    ] }, label)),
+    rows.map(([label, value]) => /* @__PURE__ */ jsx5(ConnectionRow, { label, value }, label)),
     /* @__PURE__ */ jsx5(Hint, { children: "To add another device, open S3 Sync there and enter the same endpoint, bucket, folder, an access key for this bucket and your passphrase." })
   ] });
 }
