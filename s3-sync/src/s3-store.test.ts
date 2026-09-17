@@ -185,6 +185,18 @@ describe("S3Store devices", () => {
     expect(requests[0].url).toBe("http://127.0.0.1:9000/vault?list-type=2&prefix=team%2Fdevices%2F");
   });
 
+  it("versions a device without an ETag by LastModified and Size", async () => {
+    const list = (modified: string, size: number) =>
+      `<ListBucketResult><IsTruncated>false</IsTruncated><Contents><Key>team/devices/a.b64</Key><LastModified>${modified}</LastModified><Size>${size}</Size></Contents></ListBucketResult>`;
+    let body = list("2026-09-17T00:00:00.000Z", 10);
+    const { s } = store(() => ({ status: 200, body }));
+    const [first] = await s.listDevices();
+    expect(first).toEqual({ id: "a", version: "2026-09-17T00:00:00.000Z:10" });
+    body = list("2026-09-17T00:01:00.000Z", 10);
+    const [second] = await s.listDevices();
+    expect(second.version).not.toBe(first.version);
+  });
+
   it("writes the blob before its metadata", async () => {
     const { s, requests } = store(() => ({ status: 200 }));
     await s.putDevice("a", "BLOB", { label: "Laptop", pushedAt: "2026-09-17T00:00:00.000Z" });

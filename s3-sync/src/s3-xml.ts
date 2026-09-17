@@ -1,4 +1,4 @@
-export type ListPage = { objects: { key: string; etag: string }[]; truncated: boolean; nextToken: string | null };
+export type ListPage = { objects: { key: string; etag: string; lastModified: string; size: string }[]; truncated: boolean; nextToken: string | null };
 
 const ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" };
 
@@ -25,6 +25,8 @@ export function parseListObjects(xml: string): ListPage {
   const objects = [...xml.matchAll(/<Contents>([\s\S]*?)<\/Contents>/g)].map(([, c]) => ({
     key: tag(c, "Key") ?? "",
     etag: (tag(c, "ETag") ?? "").replace(/^"|"$/g, ""),
+    lastModified: tag(c, "LastModified") ?? "",
+    size: tag(c, "Size") ?? "",
   }));
   return { objects, truncated: tag(xml, "IsTruncated") === "true", nextToken: tag(xml, "NextContinuationToken") };
 }

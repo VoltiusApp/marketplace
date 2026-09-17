@@ -136,7 +136,7 @@ export class S3Store implements VaultStore {
         const rest = o.key.slice(dir.length);
         if (!o.key.startsWith(dir) || !rest.endsWith(".b64")) continue;
         const id = rest.slice(0, -4);
-        if (DEVICE_ID_RE.test(id)) out.push({ id, version: o.etag });
+        if (DEVICE_ID_RE.test(id)) out.push({ id, version: o.etag || `${o.lastModified}:${o.size}` });
       }
       token = page.truncated ? page.nextToken : null;
     } while (token);

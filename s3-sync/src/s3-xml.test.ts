@@ -11,8 +11,8 @@ describe("parseListObjects", () => {
 </ListBucketResult>`;
     expect(parseListObjects(xml)).toEqual({
       objects: [
-        { key: "p/devices/a.b64", etag: "e1" },
-        { key: "p/devices/a & b.json", etag: "e2" },
+        { key: "p/devices/a.b64", etag: "e1", lastModified: "2026-09-17T00:00:00.000Z", size: "3" },
+        { key: "p/devices/a & b.json", etag: "e2", lastModified: "", size: "" },
       ],
       truncated: true,
       nextToken: "tok&1",
