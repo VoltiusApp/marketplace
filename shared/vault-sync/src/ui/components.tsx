@@ -71,8 +71,17 @@ export function Card({ title, aside, children }: { title: string; aside?: React.
   );
 }
 
-const INPUT_CLASS =
+export const INPUT_CLASS =
   "form-input w-full px-3 py-2 rounded-lg text-sm outline-hidden bg-(--t-bg-input) border border-(--t-border) text-(--t-text-primary)";
+
+export function ConnectionRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-xs font-medium text-(--t-text-muted)">{label}</span>
+      <span className="text-sm font-mono text-(--t-text-primary) break-all">{value}</span>
+    </div>
+  );
+}
 
 function FieldShell({ label, hint, children }: { label: string; hint?: React.ReactNode; children: React.ReactNode }) {
   return (

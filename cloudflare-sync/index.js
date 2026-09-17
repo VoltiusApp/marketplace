@@ -660,6 +660,12 @@ function Card({ title, aside, children }) {
   ] });
 }
 var INPUT_CLASS = "form-input w-full px-3 py-2 rounded-lg text-sm outline-hidden bg-(--t-bg-input) border border-(--t-border) text-(--t-text-primary)";
+function ConnectionRow({ label, value }) {
+  return /* @__PURE__ */ jsxs("div", { className: "flex flex-col gap-1", children: [
+    /* @__PURE__ */ jsx("span", { className: "text-xs font-medium text-(--t-text-muted)", children: label }),
+    /* @__PURE__ */ jsx("span", { className: "text-sm font-mono text-(--t-text-primary) break-all", children: value })
+  ] });
+}
 function FieldShell({ label, hint, children }) {
   return /* @__PURE__ */ jsxs("div", { className: "flex flex-col gap-1", children: [
     /* @__PURE__ */ jsx("label", { className: "text-xs font-medium text-(--t-text-muted)", children: label }),
@@ -1441,10 +1447,7 @@ function ConnectionCard({ api }) {
   }, [api]);
   const copyStoredToken = () => run("copy", async () => copyToken(api, await api.vault.get("syncToken")));
   return /* @__PURE__ */ jsxs5(Card, { title: "Connection", children: [
-    /* @__PURE__ */ jsxs5("div", { className: "flex flex-col gap-1", children: [
-      /* @__PURE__ */ jsx5("span", { className: "text-xs font-medium text-(--t-text-muted)", children: "Worker URL" }),
-      /* @__PURE__ */ jsx5("span", { className: "text-sm font-mono text-(--t-text-primary) break-all", children: workerUrl })
-    ] }),
+    /* @__PURE__ */ jsx5(ConnectionRow, { label: "Worker URL", value: workerUrl }),
     error && /* @__PURE__ */ jsx5(ErrorBanner, { message: error }),
     /* @__PURE__ */ jsxs5(Hint, { children: [
       "To add another device, open Cloudflare Sync there, choose ",

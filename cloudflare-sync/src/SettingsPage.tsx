@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { PluginAPI } from "@voltius/plugin-types";
 import type { VaultSyncEngine } from "../../shared/vault-sync/src/engine";
-import { Card, ErrorBanner, Hint, LinkButton, useAction } from "../../shared/vault-sync/src/ui/components";
+import { Card, ConnectionRow, ErrorBanner, Hint, LinkButton, useAction } from "../../shared/vault-sync/src/ui/components";
 import { SettingsShell } from "../../shared/vault-sync/src/ui/settings";
 import { copyToken } from "./copyToken";
 import { SetupWizard } from "./SetupWizard";
@@ -15,10 +15,7 @@ function ConnectionCard({ api }: { api: PluginAPI }) {
   const copyStoredToken = () => run("copy", async () => copyToken(api, await api.vault.get("syncToken")));
   return (
     <Card title="Connection">
-      <div className="flex flex-col gap-1">
-        <span className="text-xs font-medium text-(--t-text-muted)">Worker URL</span>
-        <span className="text-sm font-mono text-(--t-text-primary) break-all">{workerUrl}</span>
-      </div>
+      <ConnectionRow label="Worker URL" value={workerUrl} />
       {error && <ErrorBanner message={error} />}
       <Hint>
         To add another device, open Cloudflare Sync there, choose <span className="font-medium">I already have one</span>, and
