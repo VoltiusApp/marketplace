@@ -1,7 +1,7 @@
 {
   "id": "plugin-s3-sync",
   "name": "S3 Sync",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "minAppVersion": "0.37.0",
   "description": "Encrypted vault sync through any S3-compatible bucket — AWS S3, Cloudflare R2, Backblaze B2, Wasabi, MinIO and more. No server to run; data is encrypted on this device first.",
   "permissions": ["vault:read", "vault:write", "storage", "http", "crypto:derive", "ui", "sync:write", "notifications", "settings-page"]

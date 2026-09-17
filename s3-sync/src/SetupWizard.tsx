@@ -1,7 +1,8 @@
 import { useState } from "react";
+import { FormSelect } from "@voltius/ui";
 import type { PluginAPI } from "@voltius/plugin-types";
 import type { VaultSyncEngine } from "../../shared/vault-sync/src/engine";
-import { Btn, ErrorBanner, Hint, INPUT_CLASS, LinkButton, SecretInput, TextInput, openExternal, useAction } from "../../shared/vault-sync/src/ui/components";
+import { Btn, ErrorBanner, Hint, LinkButton, SecretInput, TextInput, openExternal, useAction } from "../../shared/vault-sync/src/ui/components";
 import { ActionRow, PassphraseStep, StepCard, type Connection } from "../../shared/vault-sync/src/ui/wizard";
 import { displayPrefix, normalizeEndpoint, normalizePrefix, toConfigValues, validateBucket, type Addressing, type S3Config } from "./config";
 import { endpointAfterRegionChange, endpointFor, PRESETS, type Preset } from "./presets";
@@ -70,12 +71,12 @@ export function SetupWizard({ api, engine, onDone }: { api: PluginAPI; engine: V
         summary={preset?.name}
         onChange={busy ? undefined : () => { setPreset(null); setConnection(null); setError(null); }}
       >
-        <select className={INPUT_CLASS} value="" onChange={(e) => { const p = PRESETS.find((x) => x.id === e.target.value); if (p) choosePreset(p); }}>
-          <option value="" disabled>Choose a provider</option>
-          {PRESETS.map((p) => (
-            <option key={p.id} value={p.id}>{p.name}</option>
-          ))}
-        </select>
+        <FormSelect
+          ariaLabel="Storage provider"
+          value=""
+          options={[{ value: "", label: "Choose a provider" }, ...PRESETS.map((p) => ({ value: p.id, label: p.name }))]}
+          onChange={(id) => { const p = PRESETS.find((x) => x.id === id); if (p) choosePreset(p); }}
+        />
         <Hint>Any S3-compatible service works. Pick Other if yours is not listed.</Hint>
       </StepCard>
 

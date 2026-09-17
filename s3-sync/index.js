@@ -1109,6 +1109,7 @@ function SettingsShell({
 
 // src/SetupWizard.tsx
 import { useState as useState4 } from "react";
+import { FormSelect } from "@voltius/ui";
 
 // ../shared/vault-sync/src/ui/wizard.tsx
 import { useState as useState3 } from "react";
@@ -1264,13 +1265,18 @@ function SetupWizard({ api, engine, onDone }) {
           setError(null);
         },
         children: [
-          /* @__PURE__ */ jsxs4("select", { className: INPUT_CLASS, value: "", onChange: (e) => {
-            const p = PRESETS.find((x) => x.id === e.target.value);
-            if (p) choosePreset(p);
-          }, children: [
-            /* @__PURE__ */ jsx4("option", { value: "", disabled: true, children: "Choose a provider" }),
-            PRESETS.map((p) => /* @__PURE__ */ jsx4("option", { value: p.id, children: p.name }, p.id))
-          ] }),
+          /* @__PURE__ */ jsx4(
+            FormSelect,
+            {
+              ariaLabel: "Storage provider",
+              value: "",
+              options: [{ value: "", label: "Choose a provider" }, ...PRESETS.map((p) => ({ value: p.id, label: p.name }))],
+              onChange: (id) => {
+                const p = PRESETS.find((x) => x.id === id);
+                if (p) choosePreset(p);
+              }
+            }
+          ),
           /* @__PURE__ */ jsx4(Hint, { children: "Any S3-compatible service works. Pick Other if yours is not listed." })
         ]
       }
