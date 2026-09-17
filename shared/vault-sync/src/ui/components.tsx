@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Icon } from "@voltius/ui";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
-import { describeError } from "./errors";
+import { describeError } from "../describeError";
 
 // A plain anchor is a no-op in the Tauri webview, so links go through the opener plugin.
 export function openExternal(url: string): void {

@@ -40,6 +40,7 @@ npm ci                              # from the marketplace root: installs every 
 npm run typecheck -w cloudflare-sync
 npm run build -w cloudflare-sync
 npm test -w cloudflare-sync
+npm run check -w cloudflare-sync   # host specifier gate
 ```
 
 Worker tests:
