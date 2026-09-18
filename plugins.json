@@ -109,6 +109,7 @@
       "monitoring",
       "metrics"
     ],
+    "icon": "lucide:activity",
     "theme": false,
     "cssHash": "819fd8c33c897e60ec02a3c69e9ea83551f18ddc48f0122b764221870ffaafe8"
   },
@@ -160,6 +161,7 @@
       "system",
       "processes"
     ],
+    "icon": "lucide:cpu",
     "theme": false
   },
   {
