@@ -1,0 +1,25 @@
+name: Typecheck
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            cloudflare-sync/worker/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck --workspaces --if-present
+      - run: npm ci
+        working-directory: cloudflare-sync/worker
+      - run: npm run typecheck
+        working-directory: cloudflare-sync/worker
