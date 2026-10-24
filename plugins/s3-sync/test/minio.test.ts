@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import type { Http } from "../../shared/vault-sync/src/http";
+import type { Http } from "../../../shared/vault-sync/src/http";
 import type { S3Config } from "../src/config";
 import { S3Store } from "../src/s3-store";
 import { signRequest } from "../src/sigv4";

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fakeApi } from "../../shared/vault-sync/src/testing/fakes";
+import { fakeApi } from "../../../shared/vault-sync/src/testing/fakes";
 import {
   displayPrefix,
   isPrivateHost,

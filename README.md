@@ -18,6 +18,14 @@ To submit a plugin, open a PR adding your entry to [`plugins.json`](plugins.json
 
 Because plugins are trusted code and run without a runtime sandbox, review is the security boundary — declared permissions must match what the code actually uses, and there must be no deceptive or malicious behavior.
 
+## Repository layout
+
+- `plugins.json`, `snippets.json` — the catalogues the app fetches. Their paths are fixed.
+- `plugins/<name>/` — source and built bundle of each plugin hosted in this repo.
+- `shared/` — code shared by several plugins (bundled into each, never served on its own).
+- `snippets/entries/` — one file per snippet entry, built into `snippets.json`.
+- `scripts/` — catalogue tooling (`stamp-hashes.mjs`, `build-snippets.mjs`, `check-externals.mjs`).
+
 ## Contributing
 
 The simplest contribution is adding your plugin to `plugins.json` via a PR. See [CONTRIBUTING.md](CONTRIBUTING.md).

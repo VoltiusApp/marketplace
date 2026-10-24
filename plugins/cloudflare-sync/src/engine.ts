@@ -1,5 +1,5 @@
 import type { PluginAPI } from "@voltius/plugin-types";
-import { createVaultSyncEngine } from "../../shared/vault-sync/src/engine";
+import { createVaultSyncEngine } from "../../../shared/vault-sync/src/engine";
 import { WorkerStore } from "./worker-store";
 
 export function createCloudflareEngine(api: PluginAPI) {

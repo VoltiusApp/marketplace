@@ -37,10 +37,10 @@ Gist Sync is still the simplest path if you already have GitHub. Choose **Cloudf
 
 ```bash
 npm ci                              # from the marketplace root: installs every workspace
-npm run typecheck -w cloudflare-sync
-npm run build -w cloudflare-sync
-npm test -w cloudflare-sync
-npm run check -w cloudflare-sync   # host specifier gate
+npm run typecheck -w plugins/cloudflare-sync
+npm run build -w plugins/cloudflare-sync
+npm test -w plugins/cloudflare-sync
+npm run check -w plugins/cloudflare-sync   # host specifier gate
 ```
 
 Worker tests:

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import type { PluginAPI } from "@voltius/plugin-types";
-import type { VaultSyncEngine } from "../../shared/vault-sync/src/engine";
-import { Card, ConnectionRow, Hint } from "../../shared/vault-sync/src/ui/components";
-import { SettingsShell } from "../../shared/vault-sync/src/ui/settings";
+import type { VaultSyncEngine } from "../../../shared/vault-sync/src/engine";
+import { Card, ConnectionRow, Hint } from "../../../shared/vault-sync/src/ui/components";
+import { SettingsShell } from "../../../shared/vault-sync/src/ui/settings";
 import { displayPrefix, loadS3Config } from "./config";
 import { SetupWizard } from "./SetupWizard";
 

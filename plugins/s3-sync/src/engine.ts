@@ -1,5 +1,5 @@
 import type { PluginAPI } from "@voltius/plugin-types";
-import { createVaultSyncEngine } from "../../shared/vault-sync/src/engine";
+import { createVaultSyncEngine } from "../../../shared/vault-sync/src/engine";
 import { loadS3Config, STORAGE_KEYS, VAULT_KEYS } from "./config";
 import { S3Store } from "./s3-store";
 

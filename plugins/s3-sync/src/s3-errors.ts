@@ -1,4 +1,4 @@
-import { StoreError } from "../../shared/vault-sync/src/store";
+import { StoreError } from "../../../shared/vault-sync/src/store";
 import { parseErrorBody } from "./s3-xml";
 
 const AUTH_CODES = new Set(["InvalidAccessKeyId", "SignatureDoesNotMatch", "AccessDenied", "AllAccessDisabled", "AccountProblem"]);

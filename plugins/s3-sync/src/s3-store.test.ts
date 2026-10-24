@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fakeHttp, type RecordedRequest } from "../../shared/vault-sync/src/testing/fakes";
+import { fakeHttp, type RecordedRequest } from "../../../shared/vault-sync/src/testing/fakes";
 import type { S3Config } from "./config";
 import { md5Base64 } from "./md5";
 import { PROBE_KEY, S3Store } from "./s3-store";
