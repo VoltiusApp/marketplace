@@ -1,5 +1,5 @@
-import type { Http } from "../../shared/vault-sync/src/http";
-import { StoreError, type DeviceInfo, type DeviceVersion, type VaultStore } from "../../shared/vault-sync/src/store";
+import type { Http } from "../../../shared/vault-sync/src/http";
+import { StoreError, type DeviceInfo, type DeviceVersion, type VaultStore } from "../../../shared/vault-sync/src/store";
 import {
   WorkerApiError,
   deleteDevice,

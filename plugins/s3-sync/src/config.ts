@@ -1,5 +1,5 @@
 import type { PluginAPI } from "@voltius/plugin-types";
-import type { ConfigValues } from "../../shared/vault-sync/src/engine";
+import type { ConfigValues } from "../../../shared/vault-sync/src/engine";
 
 export type Addressing = "path" | "virtual";
 export type S3Config = {

@@ -1,5 +1,5 @@
-import { send, type Http, type HttpResult } from "../../shared/vault-sync/src/http";
-import { DEVICE_ID_RE, StoreError, type DeviceInfo, type DeviceVersion, type VaultStore } from "../../shared/vault-sync/src/store";
+import { send, type Http, type HttpResult } from "../../../shared/vault-sync/src/http";
+import { DEVICE_ID_RE, StoreError, type DeviceInfo, type DeviceVersion, type VaultStore } from "../../../shared/vault-sync/src/store";
 import { normalizeEndpoint, normalizePrefix, validateBucket, type S3Config } from "./config";
 import { md5Base64 } from "./md5";
 import { toStoreError } from "./s3-errors";

@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { FormSelect } from "@voltius/ui";
 import type { PluginAPI } from "@voltius/plugin-types";
-import type { VaultSyncEngine } from "../../shared/vault-sync/src/engine";
-import { Btn, ErrorBanner, Hint, LinkButton, SecretInput, TextInput, openExternal, useAction } from "../../shared/vault-sync/src/ui/components";
-import { ActionRow, PassphraseStep, StepCard, type Connection } from "../../shared/vault-sync/src/ui/wizard";
+import type { VaultSyncEngine } from "../../../shared/vault-sync/src/engine";
+import { Btn, ErrorBanner, Hint, LinkButton, SecretInput, TextInput, openExternal, useAction } from "../../../shared/vault-sync/src/ui/components";
+import { ActionRow, PassphraseStep, StepCard, type Connection } from "../../../shared/vault-sync/src/ui/wizard";
 import { displayPrefix, normalizeEndpoint, normalizePrefix, toConfigValues, validateBucket, type Addressing, type S3Config } from "./config";
 import { endpointAfterRegionChange, endpointFor, PRESETS, type Preset } from "./presets";
 import { S3Store } from "./s3-store";

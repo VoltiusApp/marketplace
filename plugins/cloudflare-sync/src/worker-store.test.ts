@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { StoreError } from "../../shared/vault-sync/src/store";
-import { fakeHttp } from "../../shared/vault-sync/src/testing/fakes";
+import { StoreError } from "../../../shared/vault-sync/src/store";
+import { fakeHttp } from "../../../shared/vault-sync/src/testing/fakes";
 import { WorkerStore } from "./worker-store";
 
 const URL_ = "https://w.example";

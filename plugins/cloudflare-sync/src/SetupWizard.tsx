@@ -9,8 +9,8 @@ import {
   deployWorker,
   generateSyncToken,
 } from "./cloudflare-deploy";
-import type { VaultSyncEngine } from "../../shared/vault-sync/src/engine";
-import { describeError } from "../../shared/vault-sync/src/describeError";
+import type { VaultSyncEngine } from "../../../shared/vault-sync/src/engine";
+import { describeError } from "../../../shared/vault-sync/src/describeError";
 import {
   Btn,
   ErrorBanner,
@@ -20,7 +20,7 @@ import {
   TextInput,
   openExternal,
   useAction,
-} from "../../shared/vault-sync/src/ui/components";
+} from "../../../shared/vault-sync/src/ui/components";
 import {
   ActionRow,
   ChoiceTile,
@@ -28,7 +28,7 @@ import {
   StepCard,
   type Connection,
   type StepState,
-} from "../../shared/vault-sync/src/ui/wizard";
+} from "../../../shared/vault-sync/src/ui/wizard";
 import { copyToken } from "./copyToken";
 import { getHealth, normalizeWorkerUrl } from "./worker-api";
 import { WorkerStore } from "./worker-store";

@@ -17,7 +17,7 @@ Each element of `plugins.json` is an object:
 
 | Field         | Required | Description                                                                              |
 | ------------- | -------- | ---------------------------------------------------------------------------------------- |
-| `id`          | yes      | Unique slug; matches the plugin's `manifest.json` `id` and (for in-repo plugins) its dir |
+| `id`          | yes      | Unique slug; matches the plugin's `manifest.json` `id`                                   |
 | `name`        | yes      | Display name                                                                             |
 | `author`      | yes      | Author handle                                                                            |
 | `description` | yes      | One-line summary                                                                         |
@@ -49,6 +49,10 @@ as [Naming](#naming). An `icon` is the integration's own mark, not a badge of en
 otherwise it is treated as `owner/name` and the bundle is fetched from
 `https://github.com/<owner>/<name>/releases/latest/download`. The client fetches `manifest.json`
 and `index.js` from that base.
+
+A plugin whose source lives in this repo goes in its own folder under `plugins/`, and its `repo` points
+at that folder on `main`, e.g. `https://raw.githubusercontent.com/voltiusApp/marketplace/main/plugins/navy-green`.
+Plugins hosted elsewhere need no folder here, only their `plugins.json` entry.
 
 \* `hash` is optional in the schema — an entry without it still installs, but the client marks it
 **Unverified**. New submissions should include it so installs are integrity-verified.
@@ -142,7 +146,7 @@ not hash-pinned by the client, so it is not an install-time guarantee.
 
 What a reviewer checks on every submission. Run through it yourself before opening the PR.
 
-- [ ] `id` matches the plugin's `manifest.json` `id`, and its directory for in-repo plugins.
+- [ ] `id` matches the plugin's `manifest.json` `id`; in-repo plugins live under `plugins/`.
 - [ ] Name, description, directory and theme id are clear of third-party trademarks
       (see [Naming](#naming)).
 - [ ] `version` matches `manifest.json`.

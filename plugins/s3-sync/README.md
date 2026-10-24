@@ -98,16 +98,16 @@ use path-style addressing or a bucket name without dots.
 
 ```bash
 npm ci                       # from the marketplace root: installs every workspace
-npm run typecheck -w s3-sync
-npm run build -w s3-sync
-npm test -w s3-sync
-npm run check -w s3-sync    # host specifier gate
+npm run typecheck -w plugins/s3-sync
+npm run build -w plugins/s3-sync
+npm test -w plugins/s3-sync
+npm run check -w plugins/s3-sync    # host specifier gate
 ```
 
 Integration tests against a real MinIO (needs docker; starts and removes its own container):
 
 ```bash
-npm run test:minio -w s3-sync
+npm run test:minio -w plugins/s3-sync
 ```
 
 ## Permissions
