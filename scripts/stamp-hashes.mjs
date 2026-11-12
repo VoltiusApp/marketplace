@@ -74,8 +74,8 @@ async function computeHash(entry) {
   return sha256Hex(await readEntryFile(entry, "index.js"));
 }
 
-/** The permissions array declared by an entry's manifest.json. */
-async function computePermissions(entry) {
+/** The permissions array and desktopOnly flag declared by an entry's manifest.json. */
+async function computeManifestStamps(entry) {
   const text = (await readEntryFile(entry, "manifest.json")).toString("utf8");
   let manifest;
   try {
@@ -86,25 +86,65 @@ async function computePermissions(entry) {
   if (!Array.isArray(manifest.permissions)) {
     throw new Error(`${entry.id}: manifest.json declares no permissions array`);
   }
-  return manifest.permissions;
+  return { permissions: manifest.permissions, desktopOnly: manifest.desktopOnly === true };
+}
+
+// Mirrors ThemePreviewPalette in the client (src/themes/marketplaceThemes.ts).
+const PREVIEW_KEYS = {
+  ui: ["bgTerminal", "accent", "tabActiveText", "statusConnected"],
+  terminal: ["background", "foreground", "green", "blue", "yellow", "cyan"],
+};
+const HEX = /^#[0-9a-fA-F]{3,8}$/;
+
+/** Problems with a preview palette's shape; empty when every field is a hex colour. */
+function previewProblems(preview) {
+  const problems = [];
+  for (const [group, keys] of Object.entries(PREVIEW_KEYS)) {
+    for (const key of keys) {
+      const value = preview?.[group]?.[key];
+      if (typeof value !== "string" || !HEX.test(value)) problems.push(`${group}.${key}=${JSON.stringify(value)}`);
+    }
+  }
+  return problems;
+}
+
+/** Run an in-repo theme bundle against a stub API and pick the first registered theme's palette. */
+async function generatePreview(entry) {
+  const dir = inRepoDir(resolveBase(entry));
+  if (dir === null || !entry.theme) return null;
+  let theme = null;
+  const noop = new Proxy(() => noop, { get: () => noop });
+  const api = new Proxy({}, {
+    get: (_, key) => {
+      if (key === "isActive") return () => true;
+      if (key === "themes") return { register: (t) => { theme ??= t; }, unregister: () => {} };
+      return noop;
+    },
+  });
+  const source = await readFile(join(repoRoot, dir, "index.js"));
+  const mod = await import(`data:text/javascript;base64,${source.toString("base64")}`);
+  (mod.default ?? mod.register)(api);
+  if (!theme) throw new Error(`${entry.id}: theme bundle registered no theme`);
+  const pick = (group) => Object.fromEntries(PREVIEW_KEYS[group].map((k) => [k, theme[group]?.[k]]));
+  const preview = { ui: pick("ui"), terminal: pick("terminal") };
+  const problems = previewProblems(preview);
+  if (problems.length) throw new Error(`${entry.id}: theme colours are not hex: ${problems.join(", ")}`);
+  return preview;
 }
 
 /** Order- and duplicate-insensitive identity for a permission list. */
 const permsKey = (perms) => [...new Set(perms)].sort().join(",");
 
-/** Rebuild an entry with `hash` and `permissions` positioned right after `version`. */
-function withStamps(entry, hash, permissions) {
+/** Rebuild an entry with its stamps positioned right after `version`; a null stamp is dropped. */
+function withStamps(entry, stamps) {
+  const defined = Object.entries(stamps).filter(([, v]) => v !== null);
   const out = {};
   for (const [k, v] of Object.entries(entry)) {
-    if (k === "hash" || k === "permissions") continue;
+    if (k in stamps) continue;
     out[k] = v;
-    if (k === "version") {
-      out.hash = hash;
-      out.permissions = permissions;
-    }
+    if (k === "version") Object.assign(out, Object.fromEntries(defined));
   }
-  if (!("hash" in out)) out.hash = hash;
-  if (!("permissions" in out)) out.permissions = permissions;
+  for (const [k, v] of defined) if (!(k in out)) out[k] = v;
   return out;
 }
 
@@ -116,7 +156,9 @@ async function main() {
   const failures = [];
   for (const entry of catalog) {
     const actual = await computeHash(entry);
-    const actualPerms = await computePermissions(entry);
+    const { permissions: actualPerms, desktopOnly } = await computeManifestStamps(entry);
+    const generatedPreview = await generatePreview(entry);
+    const preview = generatedPreview ?? entry.preview ?? null;
     if (check) {
       const before = failures.length;
 
@@ -134,10 +176,20 @@ async function main() {
             `manifest ${JSON.stringify(actualPerms)})`,
         );
 
+      if ((entry.desktopOnly === true) !== desktopOnly)
+        failures.push(`${entry.id}: desktopOnly mismatch (declared ${entry.desktopOnly === true}, manifest ${desktopOnly})`);
+
+      if (entry.preview !== undefined) {
+        const problems = previewProblems(entry.preview);
+        if (problems.length) failures.push(`${entry.id}: preview colours must be hex: ${problems.join(", ")}`);
+      }
+      if (generatedPreview && JSON.stringify(entry.preview) !== JSON.stringify(generatedPreview))
+        failures.push(`${entry.id}: preview out of date (expected ${JSON.stringify(generatedPreview)})`);
+
       if (failures.length === before) console.log(`${entry.id}: OK ${actual}`);
     } else {
       console.log(`${entry.id}: ${actual} ${JSON.stringify(actualPerms)}`);
-      stamped.push(withStamps(entry, actual, actualPerms));
+      stamped.push(withStamps(entry, { hash: actual, permissions: actualPerms, desktopOnly: desktopOnly || null, preview }));
     }
   }
 

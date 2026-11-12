@@ -28,6 +28,24 @@ Each element of `plugins.json` is an object:
 | `tags`        | no       | Array of strings for search/filtering                                                    |
 | `icon`        | no       | Iconify name shown on the entry's row, e.g. `simple-icons:cloudflare` — see [Icons](#icons) |
 | `theme`       | no       | `true` for theme-only plugins                                                            |
+| `desktopOnly` | stamped  | `true` when `manifest.json` sets `desktopOnly`; the app greys the entry out on Android    |
+| `preview`     | no       | Theme palette shown before install — see [Theme previews](#theme-previews)                |
+
+## Theme previews
+
+The app's theme pickers list uninstalled marketplace themes with a colour preview. For a theme in
+this repo, `node scripts/stamp-hashes.mjs` generates `preview` from the bundle's first registered
+theme, and CI fails if it drifts. An external theme entry may supply its own:
+
+```json
+"preview": {
+  "ui": { "bgTerminal": "#141729", "accent": "#4e97de", "tabActiveText": "#23b568", "statusConnected": "#22c55e" },
+  "terminal": { "background": "#141729", "foreground": "#21b568", "green": "#22c55e", "blue": "#3b82f6", "yellow": "#eab308", "cyan": "#06b6d4" }
+}
+```
+
+Every value must be a hex colour (`#rgb` to `#rrggbbaa`). Without a valid `preview` the app shows a
+neutral swatch.
 
 ## Icons
 

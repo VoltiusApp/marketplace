@@ -10,6 +10,22 @@
     "permissions": [
       "themes"
     ],
+    "preview": {
+      "ui": {
+        "bgTerminal": "#141729",
+        "accent": "#21b568",
+        "tabActiveText": "#21b568",
+        "statusConnected": "#21b568"
+      },
+      "terminal": {
+        "background": "#141729",
+        "foreground": "#21a646",
+        "green": "#21b568",
+        "blue": "#4d9de0",
+        "yellow": "#eca843",
+        "cyan": "#2091d5"
+      }
+    },
     "tags": [
       "theme",
       "dark"
@@ -27,6 +43,22 @@
     "permissions": [
       "themes"
     ],
+    "preview": {
+      "ui": {
+        "bgTerminal": "#141729",
+        "accent": "#4e97de",
+        "tabActiveText": "#23b568",
+        "statusConnected": "#22C55E"
+      },
+      "terminal": {
+        "background": "#141729",
+        "foreground": "#21b568",
+        "green": "#22c55e",
+        "blue": "#3b82f6",
+        "yellow": "#eab308",
+        "cyan": "#06b6d4"
+      }
+    },
     "tags": [
       "theme",
       "dark"
@@ -54,6 +86,7 @@
       "storage",
       "mcp:contribute"
     ],
+    "desktopOnly": true,
     "minAppVersion": "0.19.0",
     "tags": [
       "sync",
