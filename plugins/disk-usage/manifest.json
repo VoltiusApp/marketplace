@@ -1,0 +1,9 @@
+{
+  "id": "plugin-disk-usage",
+  "name": "Disk Usage",
+  "version": "0.1.0",
+  "minAppVersion": "0.76.0",
+  "description": "See what fills a disk: scan any folder on an SSH host or this computer and drill into the biggest directories and files.",
+  "icon": "lucide:hard-drive",
+  "permissions": ["host:exec", "sessions:read", "right-panel", "ui"]
+}
