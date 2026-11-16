@@ -276,5 +276,27 @@
     ],
     "icon": "lucide:database",
     "theme": false
+  },
+  {
+    "id": "plugin-disk-usage",
+    "name": "Disk Usage",
+    "author": "voltius",
+    "description": "See what fills a disk: scan any folder on an SSH host or this computer and drill into the biggest directories and files.",
+    "repo": "https://raw.githubusercontent.com/voltiusApp/marketplace/main/plugins/disk-usage",
+    "version": "0.1.0",
+    "hash": "a49e28ef2a138f71e555b24dab069b35238f4a7ba97071b26aa00d4f661c86a1",
+    "permissions": [
+      "host:exec",
+      "sessions:read",
+      "right-panel",
+      "ui"
+    ],
+    "minAppVersion": "0.76.0",
+    "tags": [
+      "system",
+      "disk"
+    ],
+    "icon": "lucide:hard-drive",
+    "theme": false
   }
 ]

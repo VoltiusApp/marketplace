@@ -128,8 +128,8 @@ requires explicit install consent, but is presented as read-only access rather t
 these expose infrastructure inventory and telemetry and cannot change anything.
 
 **Gated, danger** — `terminal:read`, `terminal:stream`, `terminal:write`, `keychain:read`,
-`keychain:write`, `processes:manage`, `docker:manage`, `proxmox:manage`. Destructive, or exposes the
-user's own secrets and content. Consent is danger-styled.
+`keychain:write`, `processes:manage`, `docker:manage`, `proxmox:manage`, `host:exec`. Destructive, or
+exposes the user's own secrets and content. Consent is danger-styled.
 
 The split is about **what the grant exposes, not whether the verb is a read**. `terminal:read` and
 `keychain:read` are reads and stay in the danger tier, because they read the user's secrets and
@@ -153,6 +153,10 @@ What we do require:
    it from there.
 3. **The entry's `permissions` must match the served `manifest.json`.** `stamp-hashes.mjs` writes
    this for you and CI enforces it.
+4. **`host:exec` needs every command it runs to be readable in the source.** It runs anything, as the
+   user, on any open session's machine, so a reviewer must be able to list the commands the plugin
+   builds and see that untrusted input reaches them only as quoted arguments. Prefer a narrower API
+   (`docker`, `processes`, `metrics`, `sftp`) where one covers the feature.
 
 Note what this is and is not. Listing rules govern **this catalogue**; the client honours whatever
 permissions a user consents to, wherever the plugin came from, so declining to list a plugin does not
