@@ -6,7 +6,7 @@ var messages = {
     rescan: "Rescan",
     cancel: "Cancel",
     home: "Home folder",
-    pathPlaceholder: "Folder to scan, e.g. /var",
+    pathPlaceholder: "Folder to scan, e.g. /var or C:\\Users",
     noSession: "Open an SSH or local terminal to scan its disk.",
     unsupported: "This session cannot run commands.",
     notConnected: "Waiting for the session to connect.",
@@ -17,7 +17,8 @@ var messages = {
     unreadable_one: "{{count}} folder could not be read",
     unreadable_other: "{{count}} folders could not be read",
     failed: "Scan failed: {{error}}",
-    noDu: "This host has no POSIX `du` (Windows hosts are not supported yet).",
+    noDu: "This host has no `du`.",
+    windowsPath: "This session runs Windows: scan a folder such as C:\\Users, or use the home button.",
     empty: "Nothing here.",
     loadingFiles: "Listing files\u2026",
     filesFailed: "Could not list the files in this folder.",
@@ -33,7 +34,7 @@ var messages = {
     rescan: "Relancer",
     cancel: "Annuler",
     home: "Dossier personnel",
-    pathPlaceholder: "Dossier \xE0 analyser, ex. /var",
+    pathPlaceholder: "Dossier \xE0 analyser, ex. /var ou C:\\Users",
     noSession: "Ouvrez un terminal SSH ou local pour analyser son disque.",
     unsupported: "Cette session ne peut pas ex\xE9cuter de commandes.",
     notConnected: "En attente de la connexion de la session.",
@@ -44,7 +45,8 @@ var messages = {
     unreadable_one: "{{count}} dossier illisible",
     unreadable_other: "{{count}} dossiers illisibles",
     failed: "\xC9chec de l'analyse : {{error}}",
-    noDu: "Cet h\xF4te n'a pas de `du` POSIX (les h\xF4tes Windows ne sont pas encore pris en charge).",
+    noDu: "Cet h\xF4te n'a pas de `du`.",
+    windowsPath: "Cette session tourne sous Windows : analysez un dossier comme C:\\Users, ou utilisez le bouton dossier personnel.",
     empty: "Rien ici.",
     loadingFiles: "Liste des fichiers\u2026",
     filesFailed: "Impossible de lister les fichiers de ce dossier.",
@@ -77,8 +79,81 @@ function filesCommand(dir) {
   return sh('find "$1" -maxdepth 1 -type f -exec du -k {} + 2>/dev/null', dir);
 }
 var HOME_COMMAND = sh('printf %s "$HOME"');
+var PROBE_COMMAND = "echo %OS% $PSHOME";
+function dialectOf(probeOutput) {
+  return /Windows_NT|[A-Za-z]:\\/.test(probeOutput) ? "windows" : "posix";
+}
+function psQuote(s) {
+  return `'${s.replace(/['‘’‚‛]/g, "$&$&")}'`;
+}
+function powershell(script) {
+  let bytes = "";
+  for (let i = 0; i < script.length; i++) {
+    const unit = script.charCodeAt(i);
+    bytes += String.fromCharCode(unit & 255, unit >> 8);
+  }
+  return `powershell -NoProfile -NonInteractive -EncodedCommand ${btoa(bytes)}`;
+}
+var PS_PRELUDE = [
+  "$ProgressPreference = 'SilentlyContinue'",
+  "$ErrorActionPreference = 'Stop'",
+  "[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false",
+  "$out = [Console]::Out",
+  "$out.NewLine = [string][char]10",
+  "$err = [Console]::Error",
+  "$err.NewLine = $out.NewLine",
+  "$tab = [char]9",
+  "function Slash($s) { $s.Replace('\\', '/') }"
+];
+function psDir(dir) {
+  return [`$p = ${psQuote(dir)}`, "if ($p -match '^[A-Za-z]:$') { $p += '/' }", "$root = [IO.DirectoryInfo]$p"];
+}
+var PS_SCAN = [
+  "try { [Diagnostics.Process]::GetCurrentProcess().PriorityClass = 'Idle' } catch {}",
+  `if (-not $root.Exists) { $err.WriteLine("du: cannot access '$p': No such directory"); exit 1 }`,
+  "function Open($d) {",
+  "  $e = $null",
+  `  try { $e = $d.EnumerateFileSystemInfos().GetEnumerator() } catch { $err.WriteLine("du: cannot read directory '" + (Slash $d.FullName) + "'") }`,
+  "  New-Object psobject -Property @{ D = $d; E = $e; B = [long]0 }",
+  "}",
+  "$stack = New-Object System.Collections.Stack",
+  "$stack.Push((Open $root))",
+  "while ($stack.Count -gt 0) {",
+  "  $f = $stack.Peek()",
+  "  $sub = $null",
+  "  while ($null -ne $f.E -and $null -eq $sub) {",
+  `    try { $more = $f.E.MoveNext() } catch { $err.WriteLine("du: cannot read directory '" + (Slash $f.D.FullName) + "'"); $more = $false }`,
+  "    if (-not $more) { $f.E = $null; break }",
+  "    $i = $f.E.Current",
+  "    if ($i -isnot [IO.DirectoryInfo]) { $f.B += $i.Length }",
+  "    elseif (-not ($i.Attributes -band [IO.FileAttributes]::ReparsePoint)) { $sub = $i }",
+  "  }",
+  "  if ($null -ne $sub) { $stack.Push((Open $sub)); continue }",
+  "  [void]$stack.Pop()",
+  "  if ($stack.Count -gt 0) { $stack.Peek().B += $f.B }",
+  "  $out.WriteLine([string][long][Math]::Ceiling($f.B / 1024) + $tab + (Slash $f.D.FullName))",
+  "}"
+];
+var PS_FILES = [
+  "foreach ($f in $root.EnumerateFiles()) {",
+  "  $out.WriteLine([string][long][Math]::Ceiling($f.Length / 1024) + $tab + (Slash $f.FullName))",
+  "}"
+];
+var PS_HOME = ["$out.Write((Slash $HOME))"];
+function windowsScanCommand(root) {
+  return powershell([...PS_PRELUDE, ...psDir(root), ...PS_SCAN].join("\n"));
+}
+function windowsFilesCommand(dir) {
+  return powershell([...PS_PRELUDE, ...psDir(dir), ...PS_FILES].join("\n"));
+}
+var WINDOWS_HOME_COMMAND = powershell([...PS_PRELUDE, ...PS_HOME].join("\n"));
+var DRIVE_PATH = /^[A-Za-z]:([\\/]|$)/;
+function isDrivePath(p) {
+  return DRIVE_PATH.test(p.trim());
+}
 function normalizePath(p) {
   const trimmed = p.trim();
+  if (DRIVE_PATH.test(trimmed)) return trimmed.replace(/\\/g, "/").replace(/\/+$/, "");
   if (trimmed === "" || trimmed === "/") return "/";
   return trimmed.replace(/\/+$/, "");
 }
@@ -373,7 +448,8 @@ function Status({ scan, now, t }) {
   if (scan.phase === "cancelled") return /* @__PURE__ */ jsx("span", { children: t("cancelled", { count }) });
   if (scan.phase === "error") {
     const noDu = scan.exitCode === 127 || /is not recognized/i.test(scan.lastError);
-    return /* @__PURE__ */ jsx("span", { style: { color: "var(--t-status-error)" }, children: noDu ? t("noDu") : t("failed", { error: scan.lastError }) });
+    const message = scan.lastError === "windowsPath" ? t("windowsPath") : noDu ? t("noDu") : t("failed", { error: scan.lastError });
+    return /* @__PURE__ */ jsx("span", { style: { color: "var(--t-status-error)" }, children: message });
   }
   return /* @__PURE__ */ jsxs("span", { children: [
     t("scanned", { size: formatKb(sizeOf(scan.tree.root)), count, elapsed: elapsed((scan.finishedAt ?? now) - scan.startedAt) }),
@@ -508,6 +584,7 @@ var ScanStore = class {
   scans = /* @__PURE__ */ new Map();
   handles = /* @__PURE__ */ new Map();
   files = /* @__PURE__ */ new Map();
+  dialects = /* @__PURE__ */ new Map();
   listeners = /* @__PURE__ */ new Set();
   pending = null;
   version = 0;
@@ -518,6 +595,21 @@ var ScanStore = class {
   getVersion = () => this.version;
   get(sessionId) {
     return this.scans.get(sessionId);
+  }
+  /** Whether the session runs a POSIX shell or cmd/PowerShell, asked once per session. */
+  dialect(sessionId) {
+    let known = this.dialects.get(sessionId);
+    if (!known) {
+      known = Promise.resolve().then(() => this.api.host.exec(sessionId, PROBE_COMMAND, { timeoutMs: 1e4 })).then(
+        (r) => dialectOf(r.stdout),
+        () => {
+          this.dialects.delete(sessionId);
+          return "posix";
+        }
+      );
+      this.dialects.set(sessionId, known);
+    }
+    return known;
   }
   filesFor(sessionId, dir) {
     return this.files.get(fileKey(sessionId, dir));
@@ -561,9 +653,22 @@ var ScanStore = class {
       scan.unreadable += 1;
       scan.lastError = line;
     });
+    this.notify(true);
+    void this.dialect(sessionId).then((dialect) => {
+      if (this.scans.get(sessionId) !== scan || scan.phase !== "scanning") return;
+      if (dialect === "windows" && !isDrivePath(root)) {
+        this.finish(scan, "error", "windowsPath");
+        return;
+      }
+      this.run(sessionId, scan, dialect, stdout, stderr);
+    });
+  }
+  run(sessionId, scan, dialect, stdout, stderr) {
+    const root = scan.tree.root.path;
     let handle;
     try {
-      handle = this.api.host.stream(sessionId, scanCommand(root), {
+      const command = dialect === "windows" ? windowsScanCommand(root) : scanCommand(root);
+      handle = this.api.host.stream(sessionId, command, {
         onStdout: (chunk) => {
           stdout.push(chunk);
           this.notify();
@@ -590,7 +695,6 @@ var ScanStore = class {
         if (this.scans.get(sessionId) === scan) this.finish(scan, "error", String(e));
       }
     );
-    this.notify(true);
   }
   finish(scan, phase, error) {
     scan.phase = phase;
@@ -599,8 +703,11 @@ var ScanStore = class {
     this.notify(true);
   }
   cancel(sessionId) {
-    this.handles.get(sessionId)?.cancel();
+    const handle = this.handles.get(sessionId);
     this.handles.delete(sessionId);
+    if (handle) return handle.cancel();
+    const scan = this.scans.get(sessionId);
+    if (scan?.phase === "scanning") this.finish(scan, "cancelled");
   }
   open(sessionId, dir) {
     const scan = this.scans.get(sessionId);
@@ -613,14 +720,10 @@ var ScanStore = class {
     const key = fileKey(sessionId, dir);
     if (this.files.has(key)) return;
     this.files.set(key, "loading");
-    let pending;
-    try {
-      pending = this.api.host.exec(sessionId, filesCommand(dir), { timeoutMs: 2e4, maxBytes: 4 * 1024 * 1024 });
-    } catch {
-      this.files.set(key, "error");
-      return;
-    }
-    pending.then(
+    this.dialect(sessionId).then((dialect) => {
+      const command = dialect === "windows" ? windowsFilesCommand(dir) : filesCommand(dir);
+      return this.api.host.exec(sessionId, command, { timeoutMs: 2e4, maxBytes: 4 * 1024 * 1024 });
+    }).then(
       (r) => {
         this.files.set(key, parseFiles(r.stdout));
         this.notify(true);
@@ -633,8 +736,10 @@ var ScanStore = class {
   }
   async homeOf(sessionId) {
     try {
-      const r = await this.api.host.exec(sessionId, HOME_COMMAND, { timeoutMs: 1e4 });
-      return r.code === 0 && r.stdout.startsWith("/") ? r.stdout : null;
+      const windows = await this.dialect(sessionId) === "windows";
+      const r = await this.api.host.exec(sessionId, windows ? WINDOWS_HOME_COMMAND : HOME_COMMAND, { timeoutMs: 1e4 });
+      const ok = windows ? isDrivePath(r.stdout) : r.stdout.startsWith("/");
+      return r.code === 0 && ok ? r.stdout : null;
     } catch {
       return null;
     }
