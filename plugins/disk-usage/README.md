@@ -27,11 +27,27 @@ never parses the script.
 - Folders the account cannot read are counted and reported. Their contents are missing from the totals.
 - Read-only: the plugin never deletes, moves or writes anything.
 
+### Windows (cmd and PowerShell sessions)
+
+Before its first command on a session, the plugin sends `echo %OS% $PSHOME`: cmd answers
+`Windows_NT`, PowerShell answers its install folder, and a POSIX shell answers neither. On Windows
+the same three actions run as PowerShell scripts (`PS_SCAN`, `PS_FILES`, `PS_HOME` in
+`src/scan.ts`), sent as `powershell -NoProfile -NonInteractive -EncodedCommand <base64>` so neither
+cmd nor PowerShell parses them on the way in. The folder is the script's first line, as a
+single-quoted PowerShell literal.
+
+- The scan prints the same `<KiB>\t<path>` lines as `du`, children first, at idle priority. Paths use
+  forward slashes (`C:/Users/me`).
+- Junctions and symbolic links are not followed, which also keeps the scan off other volumes mounted
+  inside the folder.
+- Sizes are file lengths rounded up to KiB, not allocated clusters.
+
 ## Requirements
 
 - Voltius 0.76.0 or later (`api.host`).
-- A POSIX `sh`, `du` and `find` on the host: Linux (GNU or busybox), macOS and the BSDs. Windows hosts
-  are not supported yet.
+- POSIX hosts: `sh`, `du` and `find` (Linux with GNU or busybox, macOS, the BSDs).
+- Windows: Windows PowerShell (`powershell.exe`, built into Windows 10 and 11), from a local cmd or
+  PowerShell terminal.
 
 ## Develop
 

@@ -198,7 +198,8 @@ function Status({ scan, now, t }: { scan: Scan; now: number; t: PluginAPI["i18n"
   if (scan.phase === "error") {
     // 127: the shell could not find a command (du, find or nice).
     const noDu = scan.exitCode === 127 || /is not recognized/i.test(scan.lastError);
-    return <span style={{ color: "var(--t-status-error)" }}>{noDu ? t("noDu") : t("failed", { error: scan.lastError })}</span>;
+    const message = scan.lastError === "windowsPath" ? t("windowsPath") : noDu ? t("noDu") : t("failed", { error: scan.lastError });
+    return <span style={{ color: "var(--t-status-error)" }}>{message}</span>;
   }
   return (
     <span>

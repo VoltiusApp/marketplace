@@ -283,8 +283,8 @@
     "author": "voltius",
     "description": "See what fills a disk: scan any folder on an SSH host or this computer and drill into the biggest directories and files.",
     "repo": "https://raw.githubusercontent.com/voltiusApp/marketplace/main/plugins/disk-usage",
-    "version": "0.1.0",
-    "hash": "a49e28ef2a138f71e555b24dab069b35238f4a7ba97071b26aa00d4f661c86a1",
+    "version": "0.1.1",
+    "hash": "112e5ddbe9e1a7b800936652948fad4c8a051716831d30b3a22d2c1e50a394b7",
     "permissions": [
       "host:exec",
       "sessions:read",

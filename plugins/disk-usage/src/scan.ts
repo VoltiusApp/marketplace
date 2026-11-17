@@ -36,8 +36,106 @@ export function filesCommand(dir: string): string {
 
 export const HOME_COMMAND = sh('printf %s "$HOME"');
 
+export type Dialect = "posix" | "windows";
+
+/** cmd prints `Windows_NT`, PowerShell prints its install folder, a POSIX shell prints neither. */
+export const PROBE_COMMAND = "echo %OS% $PSHOME";
+
+export function dialectOf(probeOutput: string): Dialect {
+  return /Windows_NT|[A-Za-z]:\\/.test(probeOutput) ? "windows" : "posix";
+}
+
+export function psQuote(s: string): string {
+  // PowerShell also closes a single-quoted string on the typographic quotes.
+  return `'${s.replace(/['‘’‚‛]/g, "$&$&")}'`;
+}
+
+// The script travels as base64, so neither cmd nor PowerShell parses it on the way in.
+function powershell(script: string): string {
+  let bytes = "";
+  for (let i = 0; i < script.length; i++) {
+    const unit = script.charCodeAt(i);
+    bytes += String.fromCharCode(unit & 0xff, unit >> 8);
+  }
+  return `powershell -NoProfile -NonInteractive -EncodedCommand ${btoa(bytes)}`;
+}
+
+// Progress records would reach stderr as CLIXML and count as unreadable folders.
+const PS_PRELUDE = [
+  "$ProgressPreference = 'SilentlyContinue'",
+  "$ErrorActionPreference = 'Stop'",
+  "[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false",
+  "$out = [Console]::Out",
+  "$out.NewLine = [string][char]10",
+  "$err = [Console]::Error",
+  "$err.NewLine = $out.NewLine",
+  "$tab = [char]9",
+  "function Slash($s) { $s.Replace('\\', '/') }",
+];
+
+function psDir(dir: string): string[] {
+  return [`$p = ${psQuote(dir)}`, "if ($p -match '^[A-Za-z]:$') { $p += '/' }", "$root = [IO.DirectoryInfo]$p"];
+}
+
+/**
+ * The same `<kib>\t<path>` lines as du, children first. Junctions and symlinks are not followed,
+ * which also keeps the scan off other volumes mounted inside the folder.
+ */
+const PS_SCAN = [
+  "try { [Diagnostics.Process]::GetCurrentProcess().PriorityClass = 'Idle' } catch {}",
+  "if (-not $root.Exists) { $err.WriteLine(\"du: cannot access '$p': No such directory\"); exit 1 }",
+  "function Open($d) {",
+  "  $e = $null",
+  "  try { $e = $d.EnumerateFileSystemInfos().GetEnumerator() } catch { $err.WriteLine(\"du: cannot read directory '\" + (Slash $d.FullName) + \"'\") }",
+  "  New-Object psobject -Property @{ D = $d; E = $e; B = [long]0 }",
+  "}",
+  "$stack = New-Object System.Collections.Stack",
+  "$stack.Push((Open $root))",
+  "while ($stack.Count -gt 0) {",
+  "  $f = $stack.Peek()",
+  "  $sub = $null",
+  "  while ($null -ne $f.E -and $null -eq $sub) {",
+  "    try { $more = $f.E.MoveNext() } catch { $err.WriteLine(\"du: cannot read directory '\" + (Slash $f.D.FullName) + \"'\"); $more = $false }",
+  "    if (-not $more) { $f.E = $null; break }",
+  "    $i = $f.E.Current",
+  "    if ($i -isnot [IO.DirectoryInfo]) { $f.B += $i.Length }",
+  "    elseif (-not ($i.Attributes -band [IO.FileAttributes]::ReparsePoint)) { $sub = $i }",
+  "  }",
+  "  if ($null -ne $sub) { $stack.Push((Open $sub)); continue }",
+  "  [void]$stack.Pop()",
+  "  if ($stack.Count -gt 0) { $stack.Peek().B += $f.B }",
+  "  $out.WriteLine([string][long][Math]::Ceiling($f.B / 1024) + $tab + (Slash $f.D.FullName))",
+  "}",
+];
+
+const PS_FILES = [
+  "foreach ($f in $root.EnumerateFiles()) {",
+  "  $out.WriteLine([string][long][Math]::Ceiling($f.Length / 1024) + $tab + (Slash $f.FullName))",
+  "}",
+];
+
+const PS_HOME = ["$out.Write((Slash $HOME))"];
+
+export function windowsScanCommand(root: string): string {
+  return powershell([...PS_PRELUDE, ...psDir(root), ...PS_SCAN].join("\n"));
+}
+
+export function windowsFilesCommand(dir: string): string {
+  return powershell([...PS_PRELUDE, ...psDir(dir), ...PS_FILES].join("\n"));
+}
+
+export const WINDOWS_HOME_COMMAND = powershell([...PS_PRELUDE, ...PS_HOME].join("\n"));
+
+const DRIVE_PATH = /^[A-Za-z]:([\\/]|$)/;
+
+export function isDrivePath(p: string): boolean {
+  return DRIVE_PATH.test(p.trim());
+}
+
+/** Windows paths are kept with forward slashes, so the tree and the breadcrumbs handle both alike. */
 export function normalizePath(p: string): string {
   const trimmed = p.trim();
+  if (DRIVE_PATH.test(trimmed)) return trimmed.replace(/\\/g, "/").replace(/\/+$/, "");
   if (trimmed === "" || trimmed === "/") return "/";
   return trimmed.replace(/\/+$/, "");
 }

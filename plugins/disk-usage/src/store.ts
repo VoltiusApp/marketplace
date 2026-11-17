@@ -1,5 +1,22 @@
 import type { HostStreamHandle, PluginAPI } from "@voltius/plugin-types";
-import { DuTree, HOME_COMMAND, filesCommand, lineSplitter, normalizePath, parseDuLine, parseFiles, scanCommand, type FileEntry } from "./scan";
+import {
+  DuTree,
+  HOME_COMMAND,
+  PROBE_COMMAND,
+  WINDOWS_HOME_COMMAND,
+  dialectOf,
+  filesCommand,
+  isDrivePath,
+  lineSplitter,
+  normalizePath,
+  parseDuLine,
+  parseFiles,
+  scanCommand,
+  windowsFilesCommand,
+  windowsScanCommand,
+  type Dialect,
+  type FileEntry,
+} from "./scan";
 
 export type Phase = "scanning" | "done" | "cancelled" | "error";
 
@@ -25,6 +42,7 @@ export class ScanStore {
   private scans = new Map<string, Scan>();
   private handles = new Map<string, HostStreamHandle>();
   private files = new Map<string, Files>();
+  private dialects = new Map<string, Promise<Dialect>>();
   private listeners = new Set<() => void>();
   private pending: ReturnType<typeof setTimeout> | null = null;
   version = 0;
@@ -40,6 +58,24 @@ export class ScanStore {
 
   get(sessionId: string): Scan | undefined {
     return this.scans.get(sessionId);
+  }
+
+  /** Whether the session runs a POSIX shell or cmd/PowerShell, asked once per session. */
+  private dialect(sessionId: string): Promise<Dialect> {
+    let known = this.dialects.get(sessionId);
+    if (!known) {
+      known = Promise.resolve()
+        .then(() => this.api.host.exec(sessionId, PROBE_COMMAND, { timeoutMs: 10_000 }))
+        .then(
+          (r) => dialectOf(r.stdout),
+          () => {
+            this.dialects.delete(sessionId);
+            return "posix" as const;
+          },
+        );
+      this.dialects.set(sessionId, known);
+    }
+    return known;
   }
 
   filesFor(sessionId: string, dir: string): Files | undefined {
@@ -86,9 +122,29 @@ export class ScanStore {
       scan.unreadable += 1;
       scan.lastError = line;
     });
+    this.notify(true);
+    void this.dialect(sessionId).then((dialect) => {
+      if (this.scans.get(sessionId) !== scan || scan.phase !== "scanning") return;
+      if (dialect === "windows" && !isDrivePath(root)) {
+        this.finish(scan, "error", "windowsPath");
+        return;
+      }
+      this.run(sessionId, scan, dialect, stdout, stderr);
+    });
+  }
+
+  private run(
+    sessionId: string,
+    scan: Scan,
+    dialect: Dialect,
+    stdout: ReturnType<typeof lineSplitter>,
+    stderr: ReturnType<typeof lineSplitter>,
+  ): void {
+    const root = scan.tree.root.path;
     let handle: HostStreamHandle;
     try {
-      handle = this.api.host.stream(sessionId, scanCommand(root), {
+      const command = dialect === "windows" ? windowsScanCommand(root) : scanCommand(root);
+      handle = this.api.host.stream(sessionId, command, {
         onStdout: (chunk) => {
           stdout.push(chunk);
           this.notify();
@@ -115,7 +171,6 @@ export class ScanStore {
         if (this.scans.get(sessionId) === scan) this.finish(scan, "error", String(e));
       },
     );
-    this.notify(true);
   }
 
   private finish(scan: Scan, phase: Phase, error?: string): void {
@@ -126,8 +181,12 @@ export class ScanStore {
   }
 
   cancel(sessionId: string): void {
-    this.handles.get(sessionId)?.cancel();
+    const handle = this.handles.get(sessionId);
     this.handles.delete(sessionId);
+    if (handle) return handle.cancel();
+    // Still asking the session which shell it runs: nothing has started yet.
+    const scan = this.scans.get(sessionId);
+    if (scan?.phase === "scanning") this.finish(scan, "cancelled");
   }
 
   open(sessionId: string, dir: string): void {
@@ -142,14 +201,12 @@ export class ScanStore {
     const key = fileKey(sessionId, dir);
     if (this.files.has(key)) return;
     this.files.set(key, "loading");
-    let pending: Promise<{ stdout: string; code: number | null }>;
-    try {
-      pending = this.api.host.exec(sessionId, filesCommand(dir), { timeoutMs: 20_000, maxBytes: 4 * 1024 * 1024 });
-    } catch {
-      this.files.set(key, "error");
-      return;
-    }
-    pending.then(
+    this.dialect(sessionId)
+      .then((dialect) => {
+        const command = dialect === "windows" ? windowsFilesCommand(dir) : filesCommand(dir);
+        return this.api.host.exec(sessionId, command, { timeoutMs: 20_000, maxBytes: 4 * 1024 * 1024 });
+      })
+      .then(
       (r) => {
         this.files.set(key, parseFiles(r.stdout));
         this.notify(true);
@@ -163,8 +220,10 @@ export class ScanStore {
 
   async homeOf(sessionId: string): Promise<string | null> {
     try {
-      const r = await this.api.host.exec(sessionId, HOME_COMMAND, { timeoutMs: 10_000 });
-      return r.code === 0 && r.stdout.startsWith("/") ? r.stdout : null;
+      const windows = (await this.dialect(sessionId)) === "windows";
+      const r = await this.api.host.exec(sessionId, windows ? WINDOWS_HOME_COMMAND : HOME_COMMAND, { timeoutMs: 10_000 });
+      const ok = windows ? isDrivePath(r.stdout) : r.stdout.startsWith("/");
+      return r.code === 0 && ok ? r.stdout : null;
     } catch {
       return null;
     }

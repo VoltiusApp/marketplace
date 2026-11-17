@@ -1,9 +1,26 @@
-import { describe, expect, test } from "vitest";
+import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { DuTree, type DirNode, filesCommand, formatKb, lineSplitter, parseDuLine, parseFiles, scanCommand, sizeOf } from "./scan";
+import {
+  DuTree,
+  type DirNode,
+  PROBE_COMMAND,
+  dialectOf,
+  filesCommand,
+  formatKb,
+  isDrivePath,
+  lineSplitter,
+  normalizePath,
+  parseDuLine,
+  parseFiles,
+  psQuote,
+  scanCommand,
+  sizeOf,
+  windowsFilesCommand,
+  windowsScanCommand,
+} from "./scan";
 
 describe("DuTree", () => {
   test("builds the tree from du's children-first lines", () => {
@@ -73,12 +90,21 @@ test("formatKb", () => {
   expect(formatKb(300 * 1024 * 1024)).toBe("300 GB");
 });
 
-describe("commands against a real shell", () => {
-  const dir = mkdtempSync(path.join(tmpdir(), "disk usage 'q' "));
+function scratchDir(prefix: string): string {
+  const dir = mkdtempSync(path.join(tmpdir(), prefix));
   mkdirSync(path.join(dir, "sub dir"));
   writeFileSync(path.join(dir, "sub dir", "big"), Buffer.alloc(256 * 1024, 1));
   writeFileSync(path.join(dir, "top file"), Buffer.alloc(64 * 1024, 1));
-  symlinkSync(path.join(dir, "sub dir"), path.join(dir, "link"));
+  return dir;
+}
+
+describe.skipIf(process.platform === "win32")("commands against a real shell", () => {
+  let dir = "";
+  beforeAll(() => {
+    dir = scratchDir("disk usage 'q' ");
+    symlinkSync(path.join(dir, "sub dir"), path.join(dir, "link"));
+  });
+  afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
   test("scanCommand reports every directory under an awkward path", () => {
     const out = execFileSync("sh", ["-c", scanCommand(dir)], { encoding: "utf8" });
@@ -94,5 +120,74 @@ describe("commands against a real shell", () => {
   test("filesCommand lists only the regular files directly inside", () => {
     const out = execFileSync("sh", ["-c", filesCommand(dir)], { encoding: "utf8" });
     expect(parseFiles(out).map((f) => f.name)).toEqual(["top file"]);
+  });
+});
+
+describe("Windows sessions", () => {
+  const decode = (command: string) => {
+    const b64 = command.split(" ").pop()!;
+    const bytes = Buffer.from(b64, "base64");
+    return bytes.toString("utf16le");
+  };
+
+  test("the probe tells cmd and PowerShell from a POSIX shell", () => {
+    expect(dialectOf("Windows_NT $PSHOME\r\n")).toBe("windows");
+    expect(dialectOf("%OS%\r\nC:\\Windows\\System32\\WindowsPowerShell\\v1.0\r\n")).toBe("windows");
+    expect(dialectOf("%OS%\n")).toBe("posix");
+    expect(dialectOf("")).toBe("posix");
+  });
+
+  test("drive paths keep forward slashes and lose trailing ones", () => {
+    expect(normalizePath(" C:\\Users\\me\\ ")).toBe("C:/Users/me");
+    expect(normalizePath("C:\\")).toBe("C:");
+    expect(normalizePath("d:/data/")).toBe("d:/data");
+    expect(isDrivePath("C:")).toBe(true);
+    expect(isDrivePath("/c/Users")).toBe(false);
+  });
+
+  test("a drive root holds its folders", () => {
+    const tree = new DuTree("C:");
+    tree.add(5, "C:/Users/me");
+    tree.add(9, "C:/Users");
+    tree.add(12, "C:");
+    expect(tree.root.kb).toBe(12);
+    expect(tree.find("C:/Users/me")?.kb).toBe(5);
+  });
+
+  test("the folder reaches PowerShell as one single-quoted literal", () => {
+    expect(psQuote("a'b\u2019c")).toBe("'a''b\u2019\u2019c'");
+    const script = decode(windowsScanCommand("C:/x 'y' $z"));
+    expect(script).toContain("$p = 'C:/x ''y'' $z'");
+    expect(windowsScanCommand("C:/a")).toMatch(/^powershell -NoProfile -NonInteractive -EncodedCommand [A-Za-z0-9+/=]+$/);
+    expect(decode(windowsFilesCommand("C:/a"))).toContain("EnumerateFiles()");
+  });
+
+  describe.skipIf(process.platform !== "win32")("against a real PowerShell", () => {
+    let root = "";
+    beforeAll(() => {
+      root = normalizePath(scratchDir("disk usage 'q' "));
+    });
+    afterAll(() => rmSync(root, { recursive: true, force: true }));
+    const ps = (command: string) => execFileSync("powershell.exe", ["-NoProfile", "-Command", command], { encoding: "utf8" });
+
+    test("windowsScanCommand prints du's lines, children first", () => {
+      const out = ps(windowsScanCommand(root));
+      expect(out).not.toContain("\r");
+      const tree = new DuTree(root);
+      for (const line of out.trim().split("\n")) {
+        const p = parseDuLine(line)!;
+        tree.add(p.kb, p.path);
+      }
+      expect(tree.find(`${root}/sub dir`)!.kb).toBe(256);
+      expect(tree.root.kb).toBe(320);
+    });
+
+    test("windowsFilesCommand lists only the files directly inside", () => {
+      expect(parseFiles(ps(windowsFilesCommand(root))).map((f) => f.name)).toEqual(["top file"]);
+    });
+
+    test("the probe sees PowerShell", () => {
+      expect(dialectOf(ps(PROBE_COMMAND))).toBe("windows");
+    });
   });
 });
