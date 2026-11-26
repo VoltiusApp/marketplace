@@ -298,5 +298,39 @@
     ],
     "icon": "lucide:hard-drive",
     "theme": false
+  },
+  {
+    "id": "mocha-dusk",
+    "name": "Mocha Dusk",
+    "author": "reyo",
+    "description": "A dark pastel theme with mauve accents for the interface and terminal.",
+    "repo": "reyo/voltius-plugin-mocha-dusk",
+    "version": "1.0.0",
+    "hash": "27872964a5b4cabd508129fcaf1b706c4ce8a4ed27fd4258ca6ca947511d70d2",
+    "permissions": [
+      "themes"
+    ],
+    "preview": {
+      "ui": {
+        "bgTerminal": "#1e1e2e",
+        "accent": "#cba6f7",
+        "tabActiveText": "#cba6f7",
+        "statusConnected": "#a6e3a1"
+      },
+      "terminal": {
+        "background": "#1e1e2e",
+        "foreground": "#cdd6f4",
+        "green": "#a6e3a1",
+        "blue": "#89b4fa",
+        "yellow": "#f9e2af",
+        "cyan": "#94e2d5"
+      }
+    },
+    "tags": [
+      "theme",
+      "dark",
+      "pastel"
+    ],
+    "theme": true
   }
 ]
