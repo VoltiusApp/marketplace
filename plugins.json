@@ -298,5 +298,40 @@
     ],
     "icon": "lucide:hard-drive",
     "theme": false
+  },
+  {
+    "id": "mocha-dusk",
+    "name": "Mocha Dusk",
+    "author": "reyo",
+    "description": "Mocha Dusk and Latte Dawn bring dark and light pastel palettes to the interface and terminal.",
+    "repo": "https://github.com/reyo/voltius-plugin-mocha-dusk/releases/download/v1.1.0",
+    "version": "1.1.0",
+    "hash": "9202f7c9d40a1c10f23924f7bb7c2addaf8684dedd280edeb0b4585e19e2a8d9",
+    "permissions": [
+      "themes"
+    ],
+    "preview": {
+      "ui": {
+        "bgTerminal": "#1e1e2e",
+        "accent": "#cba6f7",
+        "tabActiveText": "#cba6f7",
+        "statusConnected": "#a6e3a1"
+      },
+      "terminal": {
+        "background": "#1e1e2e",
+        "foreground": "#cdd6f4",
+        "green": "#a6e3a1",
+        "blue": "#89b4fa",
+        "yellow": "#f9e2af",
+        "cyan": "#94e2d5"
+      }
+    },
+    "tags": [
+      "theme",
+      "light",
+      "dark",
+      "pastel"
+    ],
+    "theme": true
   }
 ]
